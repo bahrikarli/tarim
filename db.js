@@ -3,7 +3,7 @@ const sql = require('mssql');
 const { envYukle } = require('./lib/env-yukle');
 
 envYukle();
-
+//deneme
 const server = (process.env.DB_SERVER || '').trim();
 const database = (process.env.DB_NAME || '').trim();
 const user = (process.env.DB_USER || '').trim();
