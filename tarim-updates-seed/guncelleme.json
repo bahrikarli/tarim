@@ -1,0 +1,8 @@
+{
+  "app": "tarim-otomasyon",
+  "version": "1.0.50",
+  "repo": "bahrikarli/tarim-updates",
+  "tag": "v1.0.50",
+  "assetName": "tarim-otomasyon-1.0.50.zip",
+  "notes": "İlk Tarım güncelleme kanalı — ZIP için release-all.bat çalıştırın."
+}

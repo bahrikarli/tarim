@@ -1,0 +1,134 @@
+/* Tarım Otomasyon — yeşil / sarı palet */
+:root {
+  --tarim-yesil: #2e7d32;
+  --tarim-yesil-koyu: #1b5e20;
+  --tarim-yesil-acik: #43a047;
+  --tarim-sari: #fbc02d;
+  --tarim-sari-koyu: #f9a825;
+  --tarim-zemin: #f1f8e9;
+
+  --bs-primary: #2e7d32;
+  --bs-primary-rgb: 46, 125, 50;
+  --bs-warning: #fbc02d;
+  --bs-warning-rgb: 251, 192, 45;
+  --bs-link-color: #1b5e20;
+  --bs-link-hover-color: #2e7d32;
+}
+
+body {
+  background-color: var(--tarim-zemin) !important;
+}
+
+.navbar {
+  background: linear-gradient(90deg, var(--tarim-yesil-koyu) 0%, var(--tarim-yesil) 55%, var(--tarim-yesil-acik) 100%) !important;
+}
+
+.navbar .nav-link:hover {
+  color: var(--tarim-sari) !important;
+}
+
+.navbar-brand .fa-seedling,
+.navbar-brand .text-warning {
+  color: var(--tarim-sari) !important;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--tarim-yesil);
+  --bs-btn-border-color: var(--tarim-yesil-koyu);
+  --bs-btn-hover-bg: var(--tarim-yesil-koyu);
+  --bs-btn-hover-border-color: #145214;
+  --bs-btn-active-bg: #145214;
+  --bs-btn-active-border-color: #0d3d10;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--tarim-yesil);
+  --bs-btn-border-color: var(--tarim-yesil);
+  --bs-btn-hover-bg: var(--tarim-yesil);
+  --bs-btn-hover-border-color: var(--tarim-yesil-koyu);
+}
+
+.bg-primary {
+  background-color: var(--tarim-yesil) !important;
+}
+
+.text-primary {
+  color: var(--tarim-yesil) !important;
+}
+
+.border-primary {
+  border-color: var(--tarim-yesil) !important;
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--tarim-yesil-koyu), var(--tarim-yesil)) !important;
+}
+
+.card-header.bg-primary {
+  background: linear-gradient(90deg, var(--tarim-yesil-koyu), var(--tarim-yesil-acik)) !important;
+}
+
+.modal-header.bg-primary {
+  background: linear-gradient(90deg, var(--tarim-yesil-koyu), var(--tarim-yesil)) !important;
+}
+
+#giris-ekrani .card-header.bg-primary {
+  background: linear-gradient(135deg, var(--tarim-yesil-koyu) 0%, var(--tarim-yesil) 70%, var(--tarim-yesil-acik) 100%) !important;
+}
+
+.hizli-satis-header {
+  background: linear-gradient(120deg, var(--tarim-yesil-koyu) 0%, var(--tarim-yesil) 50%, #33691e 100%) !important;
+  color: #fff;
+}
+
+.hizli-satis-body {
+  background: linear-gradient(180deg, #f9fbe7 0%, var(--tarim-zemin) 100%) !important;
+}
+
+.hizli-satis-shell > .card-header {
+  background: linear-gradient(90deg, var(--tarim-yesil-koyu), var(--tarim-yesil)) !important;
+  color: #fff;
+}
+
+.hizli-satis-shell > .card-header .text-warning {
+  color: var(--tarim-sari) !important;
+}
+
+.btn-check:checked + .odeme-etiket-kart {
+  background: linear-gradient(135deg, var(--tarim-yesil-koyu), var(--tarim-yesil-acik)) !important;
+}
+
+.ozet-kart.bg-gradient-primary,
+.ozet-kart.bg-gradient-musteri {
+  background: linear-gradient(135deg, var(--tarim-yesil), var(--tarim-yesil-acik)) !important;
+}
+
+.badge.bg-primary {
+  background-color: var(--tarim-yesil) !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--tarim-yesil);
+  border-color: var(--tarim-yesil-koyu);
+}
+
+.page-link {
+  color: var(--tarim-yesil);
+}
+.page-link:hover {
+  color: var(--tarim-yesil-koyu);
+}
+.active > .page-link {
+  background-color: var(--tarim-yesil);
+  border-color: var(--tarim-yesil);
+}
+
+.progress-bar {
+  background-color: var(--tarim-yesil);
+}
+
+.alert-warning {
+  background-color: #fff8e1;
+  border-color: var(--tarim-sari);
+  color: #5d4037;
+}

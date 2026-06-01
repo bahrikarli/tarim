@@ -1,0 +1,61 @@
+TARIM-UPDATES REPOSU — ILK KURULUM
+==================================
+
+Elektrik reposuna DOKUNULMAZ. Sadece yeni repo: bahrikarli/tarim-updates
+
+ADIM 1 — GitHub'da bos repo acin
+---------------------------------
+Tarayici: https://github.com/new?name=tarim-updates
+
+  - Repository name: tarim-updates
+  - Public
+  - README, .gitignore, license EKLEMEYIN (tamamen bos repo)
+
+  "Create repository" tiklayin.
+
+ADIM 2 — Bilgisayarda manifest yukleyin
+---------------------------------------
+  C:\tarim\scripts\tarim-updates-ilk-kurulum.bat
+
+  (Cift tik. Repo yoksa tarayici acilir; olusturduktan sonra tekrar calistirin.)
+
+ADIM 3 — Ilk guncelleme paketi (ZIP + Release)
+----------------------------------------------
+  C:\tarim\release-all.bat
+
+  Bu komut:
+    - tarim-otomasyon-VERSIYON.zip uretir
+    - GitHub Release olusturur
+    - guncelleme.json yukler
+
+  Program .env icinde su adresi kullanir (zaten ayarli):
+    UPDATE_MANIFEST_URL=https://github.com/bahrikarli/tarim-updates/releases/latest/download/guncelleme.json
+
+TOKEN / PUSH HATASI (403 veya sifre)
+------------------------------------
+  GitHub PAT'inizde "repo" tam yetkisi olmali.
+
+  1) gh auth login
+     - GitHub.com
+     - HTTPS
+     - Login with a web browser (en kolay)
+  2) gh auth setup-git
+  3) scripts\tarim-updates-ilk-kurulum.bat
+  4) release-all.bat
+
+  PAT elle: github.com/settings/tokens
+    - Generate new token (classic)
+    - scope: repo (tum alt kutular)
+
+  Push/release YINE olmazsa — MANUEL (5 dk):
+    scripts\tarim-updates-release-manuel.bat
+
+  Tarayicida Release olustur, surukle:
+    C:\tarim\tarim-otomasyon-VERSIYON.zip
+    C:\tarim\guncelleme.json
+
+KONTROL
+-------
+  Tarim programini yeniden baslatin.
+  Surum menusu -> Kontrol Et -> "Guncel" veya sadece Tarim surumu gosterilmeli.
+  Elektrik v1.0.51 artik Tarim'i etkilememeli.

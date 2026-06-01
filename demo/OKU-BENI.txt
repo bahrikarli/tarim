@@ -1,0 +1,25 @@
+TARIM OTOMASYON — Görüntülü başlatma
+=====================================
+
+Geliştirici (ilk kez):
+  1) EXE-URET.bat  →  demo\Tarim-Otomasyon.exe oluşur
+  2) demo\.env.ornek dosyasını demo\.env yapın, SQL şifresini yazın
+
+Her gün kullanım (ikisi de ayni):
+  BASLAT-GORUNTULU.bat
+  veya  BASLAT.bat  (yukaridakinin kopyasi)
+
+  demo\BASLAT.bat  (demo klasorunden acmak icin)
+
+Ne yapar?
+  - Sunucuyu arka planda başlatır (siyah CMD yok)
+  - Edge/Chrome ile tam ekran uygulama penceresi açar (adres çubuğu yok)
+  - Pencereyi kapatınca sunucu da durur
+
+Durdurmak:
+  DURDUR.bat
+
+EXE yoksa ama Node kuruluysa:
+  BASLAT-GORUNTULU.bat yine çalışır (geçici Node sunucusu).
+
+Port: 3011 (demo\.env içinde PORT)

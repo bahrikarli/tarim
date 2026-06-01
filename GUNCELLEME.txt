@@ -1,0 +1,25 @@
+TARIM - OTOMATIK GUNCELLEME
+===========================
+
+Elektrik projesinden AYRI kanal:
+  Repo: github.com/bahrikarli/tarim-updates
+  Manifest: guncelleme.json (app: tarim-otomasyon)
+  Paket: tarim-otomasyon-VERSIYON.zip
+
+Elektrik guncellemesi (elektrik-updates) bu programa UYGULANMAZ.
+
+AYARLAR (.env)
+--------------
+  UPDATE_MANIFEST_URL=https://github.com/bahrikarli/tarim-updates/releases/latest/download/guncelleme.json
+
+  Kapatmak: UPDATE_MANIFEST_URL=off
+
+YAYINLAMAK
+----------
+  release-all.bat
+  veya: release-all.bat 1.0.51
+
+KULLANICI
+---------
+  Program icinde: Surum -> Kontrol Et
+  GUNCELLE.bat (proje veya demo klasorunde)
