@@ -23,8 +23,8 @@ $excludeDirs = @(
 $excludeFiles = @(
   '.env', '.env.example', 'OKU-BENI.txt', 'BASLAT.bat',
   'VERITABANI-KOPYALA.bat', 'demo-sure.json',
-  'package-lock.json', 'release.bat', 'PAKET-OLUSTUR.bat',
-  'MUSTERI-NE-VERILIR.txt', 'OKU-BENI.txt'
+  'package-lock.json', 'release.bat', 'release-otomatik.bat', 'PAKET-OLUSTUR.bat',
+  'MUSTERI-NE-VERILIR.txt', 'OKU-BENI.txt', 'bump-version.js'
 ) | ForEach-Object { "/XF", $_ }
 
 # acrziraat ozel sql / script (tarim uzerine yazilmasin)
@@ -51,6 +51,15 @@ if ($WhatIf) { $roboArgs += '/L' }
 $rc = $LASTEXITCODE
 # robocopy: 0-7 basari, 8+ hata
 if ($rc -ge 8) { throw "robocopy hata kodu: $rc" }
+
+Write-Host ""
+Write-Host "Baslat scriptleri (release paketi)..."
+$baslatKaynak = Join-Path $Kaynak 'scripts\acrziraat-release-baslat'
+$baslatHedef = Join-Path $Hedef 'scripts\acrziraat-release-baslat'
+if (Test-Path $baslatKaynak) {
+  New-Item -ItemType Directory -Force -Path $baslatHedef | Out-Null
+  Copy-Item (Join-Path $baslatKaynak '*') $baslatHedef -Force
+}
 
 Write-Host ""
 Write-Host "ACR Ziraat ozel ayarlar uygulaniyor..."

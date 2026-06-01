@@ -6,9 +6,12 @@ set "REPO=bahrikarli/tarim-updates"
 cd /d "%ROOT%"
 
 if "%~1"=="" (
-  for /f "usebackq delims=" %%i in (`node -e "const p=require('./package.json'); const v=String(p.version||'0.0.0').split('.').map(Number); v[2]=(v[2]||0)+1; console.log(v.join('.'));"`) do set "VER=%%i"
+  echo Surum otomatik artiriliyor ^(patch +1^)...
+  for /f "usebackq delims=" %%i in (`node "%ROOT%scripts\bump-version.js" --apply`) do set "VER=%%i"
 ) else (
   set "VER=%~1"
+  node "%ROOT%scripts\set-version.js" "%VER%"
+  if errorlevel 1 exit /b 1
 )
 
 if "%VER%"=="" (
@@ -17,12 +20,7 @@ if "%VER%"=="" (
 )
 
 echo.
-echo [1/5] Version %VER% olarak ayarlaniyor...
-node "%ROOT%scripts\set-version.js" "%VER%"
-if errorlevel 1 (
-  echo HATA: package version guncellenemedi.
-  exit /b 1
-)
+echo [1/5] Version: %VER%
 set "PKG_VER="
 for /f "usebackq delims=" %%i in (`node -p "require('./package.json').version"`) do set "PKG_VER=%%i"
 if /I not "%PKG_VER%"=="%VER%" (

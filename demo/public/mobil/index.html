@@ -8,17 +8,20 @@
   <meta name="mobile-web-app-capable" content="yes">
   <title>Tarım Mobil</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="mobil.css?v=6">
+  <link rel="stylesheet" href="mobil.css?v=14">
 </head>
 <body>
   <div id="view-login" class="view view-active">
     <div class="login-card">
       <h1 class="login-title">TARIM</h1>
       <p class="login-sub">Stok · Reçete · Cari</p>
-      <label class="field-label" for="apiBase">Sunucu adresi</label>
-      <input id="apiBase" class="field-input" type="url" inputmode="url" autocomplete="url"
-        placeholder="http://192.168.1.10:3011">
-      <p class="field-hint">Dükkan ağı veya dış IP (port yönlendirme gerekir)</p>
+      <details id="loginBaglanti" class="login-baglanti">
+        <summary>Bağlantı ayarları</summary>
+        <label class="field-label" for="apiBase">Sunucu adresi</label>
+        <input id="apiBase" class="field-input" type="url" inputmode="url" autocomplete="url"
+          placeholder="http://sunucu:3011">
+        <p class="field-hint">Varsayılan: bu sayfanın adresi. Farklı sunucu için düzenleyin.</p>
+      </details>
       <label class="field-label" for="kullaniciAdi">Kullanıcı</label>
       <input id="kullaniciAdi" class="field-input" type="text" autocomplete="username" autocapitalize="off" value="admin">
       <label class="field-label" for="sifre">Şifre</label>
@@ -39,6 +42,10 @@
     </header>
 
     <div id="demoUyariBar" class="demo-uyari-bar" hidden></div>
+
+    <div id="isletmeOzetBar" class="isletme-ozet-bar" hidden>
+      <div id="isletmeOzetMetin" class="isletme-ozet-metin"></div>
+    </div>
 
     <div id="kasaOzetBar" class="kasa-ozet-bar">
       <div class="kasa-ozet-baslik">Bugünkü kasa</div>
@@ -90,6 +97,11 @@
 
       <!-- Stok -->
       <section id="panel-stok" class="panel" data-panel="stok" hidden>
+        <div class="stok-aksiyon-cift">
+          <button type="button" id="btnMobilMalzeme" class="btn btn-primary btn-block">Yeni malzeme</button>
+          <button type="button" id="btnMobilGenelStok" class="btn btn-outline btn-block">Genel stok</button>
+        </div>
+        <p class="stok-ipucu">Gübre ve ilaç → <strong>Yeni malzeme</strong> (ambalaj + dozaj). Tek kalem sarf → <strong>Genel stok</strong>.</p>
         <div class="search-bar">
           <input id="stokArama" class="field-input" type="search" placeholder="Stokta ara…" autocomplete="off">
         </div>
@@ -114,13 +126,63 @@
       <section id="panel-musteri-detay" class="panel panel-detay" data-panel="musteri-detay" hidden>
         <button type="button" id="btnMusteriGeri" class="btn-back">← Müşteriler</button>
         <div id="musteriDetayOzet" class="detay-ozet"></div>
-        <div class="detay-aksiyon">
+        <div class="detay-aksiyon detay-aksiyon-cift">
+          <button type="button" id="btnMusteriRecete" class="btn btn-primary btn-block">Reçeteler</button>
           <button type="button" id="btnMusteriOdeme" class="btn btn-outline btn-block">Tahsilat al</button>
         </div>
         <h3 class="detay-baslik">Son hareketler</h3>
         <ul id="musteriHareketListe" class="hareket-liste"></ul>
       </section>
+
+      <!-- Reçete test -->
+      <section id="panel-recete" class="panel" data-panel="recete" hidden>
+        <p class="panel-aciklama">Tanımlı dozajlara göre malzeme ihtiyacını hesaplar (kayıt yapılmaz).</p>
+        <label class="field-label" for="mobilReceteUrun">Tarım ürünü</label>
+        <select id="mobilReceteUrun" class="field-input"></select>
+        <label class="field-label" for="mobilReceteDekar">Dekar</label>
+        <input id="mobilReceteDekar" class="field-input" type="number" min="0.01" step="0.01" inputmode="decimal" value="10">
+        <button type="button" id="btnMobilReceteHesapla" class="btn btn-primary btn-block">Hesapla</button>
+        <div id="mobilReceteSonuc" class="mobil-recete-sonuc"></div>
+      </section>
+
+      <!-- Müşteri reçete -->
+      <section id="panel-musteri-recete" class="panel panel-detay" data-panel="musteri-recete" hidden>
+        <button type="button" id="btnMusteriReceteGeri" class="btn-back">← Müşteri</button>
+        <p id="mobilReceteMusteriBaslik" class="mobil-recete-mus-baslik"></p>
+
+        <div id="mobilReceteListeModu">
+          <button type="button" id="btnMobilReceteYeni" class="btn btn-primary btn-block">Yeni reçete</button>
+          <h3 class="detay-baslik">Kayıtlı reçeteler</h3>
+          <ul id="mobilReceteKayitliListe" class="kart-liste mobil-recete-kayit-liste"></ul>
+          <p id="mobilReceteKayitliBos" class="bos-metin" hidden>Henüz kayıtlı reçete yok</p>
+        </div>
+
+        <div id="mobilReceteYeniModu" class="mobil-recete-yeni-modu" hidden>
+          <button type="button" id="btnMobilReceteYeniGeri" class="btn-back">← Kayıtlı reçeteler</button>
+          <label class="field-label" for="mobilReceteUrunMus">Tarım ürünü</label>
+          <select id="mobilReceteUrunMus" class="field-input"></select>
+          <label class="field-label" for="mobilReceteDekarMus">Dekar</label>
+          <input id="mobilReceteDekarMus" class="field-input" type="number" min="0.01" step="0.01" inputmode="decimal" value="10">
+          <label class="field-label" for="mobilReceteNotMus">Not (isteğe bağlı)</label>
+          <input id="mobilReceteNotMus" class="field-input" type="text" maxlength="500" placeholder="Saha notu…">
+          <button type="button" id="btnMobilReceteHesaplaMus" class="btn btn-outline btn-block">Hesapla</button>
+          <div id="mobilReceteSonucMus" class="mobil-recete-sonuc"></div>
+        </div>
+
+        <div id="mobilReceteGoruntuleModu" hidden>
+          <button type="button" id="btnMobilReceteGoruntuleGeri" class="btn-back">← Kayıtlı reçeteler</button>
+          <div id="mobilReceteKayitliDetay" class="mobil-recete-sonuc"></div>
+        </div>
+      </section>
     </main>
+
+    <div id="mobilReceteKaydetBar" class="mobil-recete-kaydet-bar" hidden>
+      <div class="mobil-recete-kaydet-toplam">
+        <span class="mobil-recete-kaydet-toplam-etiket">Genel toplam</span>
+        <span id="mobilReceteKaydetToplam" class="mobil-recete-kaydet-toplam-deger">0,00 ₺</span>
+      </div>
+      <button type="button" id="btnMobilReceteKaydet" class="btn btn-primary btn-block">Yeni reçeteyi kaydet</button>
+    </div>
 
     <nav id="bottomNav" class="bottom-nav" aria-label="Ana menü">
       <button type="button" class="nav-btn nav-active" data-nav="satis">
@@ -131,6 +193,9 @@
       </button>
       <button type="button" class="nav-btn" data-nav="musteri">
         <span class="nav-icon">👤</span><span>Cari</span>
+      </button>
+      <button type="button" class="nav-btn" data-nav="recete">
+        <span class="nav-icon">🌾</span><span>Reçete</span>
       </button>
     </nav>
   </div>
@@ -182,8 +247,93 @@
     </form>
   </dialog>
 
+  <!-- Genel stok -->
+  <dialog id="dlgGenelStok" class="mobil-dialog mobil-dialog-scroll">
+    <form id="formGenelStok" method="dialog" class="dialog-body">
+      <h2 class="dialog-title" id="dlgGenelStokBaslik">Genel stok ürünü</h2>
+      <p class="field-hint dialog-uyari">İlaç, gübre, tohum ilacı için <strong>Yeni malzeme</strong> kullanın.</p>
+      <label class="field-label" for="mobilGenelUrunAdi">Ürün adı</label>
+      <input id="mobilGenelUrunAdi" class="field-input" type="text" required maxlength="150">
+      <label class="field-label" for="mobilGenelKategori">Kategori</label>
+      <input id="mobilGenelKategori" class="field-input" type="text" list="mobilGenelKategoriListe" placeholder="İsteğe bağlı">
+      <datalist id="mobilGenelKategoriListe">
+        <option value="Herbisit"></option>
+        <option value="Fungisit"></option>
+        <option value="İnsektisit"></option>
+        <option value="Gübre"></option>
+        <option value="Tohum"></option>
+        <option value="Ambalaj / Bidon"></option>
+      </datalist>
+      <label class="field-label" for="mobilGenelBarkod">Barkod</label>
+      <input id="mobilGenelBarkod" class="field-input" type="text" maxlength="50" autocomplete="off">
+      <div class="form-iki-kolon">
+        <div>
+          <label class="field-label" for="mobilGenelAlis">Alış (₺)</label>
+          <input id="mobilGenelAlis" class="field-input" type="number" min="0" step="0.01" inputmode="decimal" value="0">
+        </div>
+        <div>
+          <label class="field-label" for="mobilGenelSatis">Satış (₺)</label>
+          <input id="mobilGenelSatis" class="field-input" type="number" min="0" step="0.01" inputmode="decimal" required>
+        </div>
+      </div>
+      <div class="form-iki-kolon">
+        <div>
+          <label class="field-label" for="mobilGenelMiktar">Miktar</label>
+          <input id="mobilGenelMiktar" class="field-input" type="number" min="0" step="1" inputmode="numeric" value="0">
+        </div>
+        <div>
+          <label class="field-label" for="mobilGenelBirim">Birim</label>
+          <select id="mobilGenelBirim" class="field-input"></select>
+        </div>
+      </div>
+      <div class="form-iki-kolon">
+        <div>
+          <label class="field-label" for="mobilGenelKritik">Kritik eşik</label>
+          <input id="mobilGenelKritik" class="field-input" type="number" min="0" step="1" value="5">
+        </div>
+        <div>
+          <label class="field-label" for="mobilGenelHedef">Hedef eşik</label>
+          <input id="mobilGenelHedef" class="field-input" type="number" min="0" step="1" value="20">
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" data-dialog-close>İptal</button>
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Malzeme -->
+  <dialog id="dlgMalzeme" class="mobil-dialog mobil-dialog-tall">
+    <div class="dialog-body">
+      <h2 class="dialog-title" id="dlgMalzemeBaslik">Yeni malzeme</h2>
+      <input type="hidden" id="mobilMalzemeGrupID" value="">
+      <label class="field-label" for="mobilMalzemeAd">Malzeme adı</label>
+      <input id="mobilMalzemeAd" class="field-input" type="text" maxlength="150" placeholder="Örn. Üst gübre, Roundup…">
+      <label class="chk-borc chk-dozaj">
+        <input type="checkbox" id="mobilMalzemeDozajGerekli" checked>
+        <span>Dozaj gerekli (reçetede dekar × ürün)</span>
+      </label>
+      <div class="malzeme-bolum-baslik">
+        <span>Ambalajlar</span>
+        <button type="button" id="btnMobilAmbalajEkle" class="btn-text">+ Ambalaj</button>
+      </div>
+      <div id="mobilMalzemeAmbalajListe" class="malzeme-ambalaj-liste"></div>
+      <div id="mobilMalzemeDozajBolum">
+        <div class="malzeme-bolum-baslik">Dozaj (tarım ürününe göre)</div>
+        <p class="field-hint">Lt/Kg · dekar — örn. arpa ekiminde 1 Lt/da</p>
+        <div id="mobilMalzemeDozajListe" class="malzeme-dozaj-liste"></div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" data-dialog-close>İptal</button>
+        <button type="button" id="btnMobilMalzemeKaydet" class="btn btn-primary">Kaydet</button>
+      </div>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" hidden></div>
 
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=14"></script>
+  <script src="mobil-stok.js?v=1"></script>
 </body>
 </html>

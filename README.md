@@ -12,6 +12,18 @@ npm start
 
 Varsayılan port: **3011**
 
+Sunucuda ag / mobil erisimi icin (yonetici):
+
+```bat
+FIREWALL-3011-AC.bat
+```
+
+veya PowerShell (yonetici):
+
+```powershell
+New-NetFirewallRule -DisplayName "Tarim Otomasyon TCP 3011" -Direction Inbound -Protocol TCP -LocalPort 3011 -Action Allow -Profile Any
+```
+
 ## Release
 
 ```bat

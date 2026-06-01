@@ -132,3 +132,25 @@ body {
   border-color: var(--tarim-sari);
   color: #5d4037;
 }
+
+/* Sistem Ayarları — sol form, sağ yedekleme */
+.ayarlar-modal-dialog {
+  max-width: 920px;
+}
+
+.ayarlar-modal-sag {
+  background: #f8faf5;
+  border-left: 1px solid #dee2e6;
+}
+
+.ayarlar-yedek-kutu {
+  max-height: min(320px, 50vh);
+  overflow: auto;
+}
+
+@media (max-width: 991.98px) {
+  .ayarlar-modal-sag {
+    border-left: none;
+    border-top: 1px solid #dee2e6;
+  }
+}

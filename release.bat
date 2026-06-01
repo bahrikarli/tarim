@@ -1,13 +1,21 @@
 @echo off
 setlocal EnableDelayedExpansion
+set "ROOT=%~dp0"
 
 if "%~1"=="" (
-  echo Kullanim: release.bat 1.0.2
-  exit /b 1
+  echo Surum otomatik artiriliyor ^(patch +1^)...
+  for /f "usebackq delims=" %%i in (`node "%ROOT%scripts\bump-version.js" --apply`) do set "VER=%%i"
+) else (
+  set "VER=%~1"
+  node "%ROOT%scripts\set-version.js" "%VER%"
+  if errorlevel 1 exit /b 1
 )
 
-set VER=%~1
-set ROOT=%~dp0
+if "%VER%"=="" (
+  echo HATA: Surum hesaplanamadi.
+  exit /b 1
+)
+echo Kullanilacak surum: %VER%
 set RELEASE_DIR=%ROOT%release-v%VER%
 set ZIP_FILE=%ROOT%tarim-otomasyon-%VER%.zip
 set GUNCELLEME_TEMPLATE=%ROOT%guncelleme-%VER%.json

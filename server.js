@@ -117,11 +117,19 @@ app.get('/api/tanitim-img-list', (req, res) => {
     res.status(500).json({ ok: false, klasor: TANITIM_IMG_DIR, hata: e.message || String(e) });
   }
 });
+function staticCharsetUtf8(res, filePath) {
+  if (/\.html?$/i.test(filePath)) res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  else if (/\.js$/i.test(filePath)) res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  else if (/\.css$/i.test(filePath)) res.setHeader('Content-Type', 'text/css; charset=utf-8');
+  else if (/\.json$/i.test(filePath)) res.setHeader('Content-Type', 'application/json; charset=utf-8');
+}
+
 app.use(express.static(PUBLIC_DIR, {
   index: 'index.html',
   etag: false,
   lastModified: false,
   maxAge: 0,
+  setHeaders: staticCharsetUtf8,
 }));
 const MOBIL_DIR = path.join(PUBLIC_DIR, 'mobil');
 app.get('/mobil', (req, res, next) => {
@@ -136,6 +144,7 @@ app.use('/mobil', express.static(MOBIL_DIR, {
   etag: false,
   lastModified: false,
   maxAge: 0,
+  setHeaders: staticCharsetUtf8,
 }));
 
 app.get('/', (req, res, next) => {

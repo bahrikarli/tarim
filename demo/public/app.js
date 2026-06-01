@@ -504,8 +504,8 @@ function stokListeModalGeciciKapat() {
 }
 
 function stokEkleModalGoster(hazirlikFn) {
-  return stokListeModalGeciciKapat().then(() => {
-    if (typeof hazirlikFn === 'function') hazirlikFn();
+  return stokListeModalGeciciKapat().then(async () => {
+    if (typeof hazirlikFn === 'function') await hazirlikFn();
     const modalEl = document.getElementById('stokEkleModal');
     if (!modalEl) return;
     stokEkleModalGirdileriSerbest(modalEl);
@@ -533,11 +533,27 @@ function stokEkleModalUrunAdiOdakla() {
   }
 }
 
+function stokEkleMalzemeUyariGoster(goster) {
+  const el = document.getElementById('stokEkleMalzemeUyari');
+  if (el) el.classList.toggle('d-none', !goster);
+}
+
+function stokMalzemeEkraninaGec() {
+  const stokEl = document.getElementById('stokEkleModal');
+  if (stokEl && typeof modalKapat === 'function') modalKapat(stokEl);
+  else if (stokEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(stokEl)?.hide();
+  if (typeof malzemeDuzenleModalAc === 'function') malzemeDuzenleModalAc();
+}
+
 function stokEkleModalAc(barkodOnDoldur) {
-  stokEkleModalGoster(() => {
+  stokEkleModalGoster(async () => {
+    if (typeof stokBirimleriYukle === 'function') await stokBirimleriYukle();
+    if (typeof stokBirimSelectDoldur === 'function') stokBirimSelectDoldur(document.getElementById('birim'), null, 'Adet');
     stokDuzenlemeID = null;
-    document.getElementById('stokModalBaslik').innerHTML = '<i class="fa-solid fa-plus"></i> Yeni Ürün Ekle';
+    document.getElementById('stokModalBaslik').innerHTML = '<i class="fa-solid fa-box"></i> Genel stok ürünü';
+    stokEkleMalzemeUyariGoster(true);
     document.getElementById('stokEkleForm').reset();
+    if (typeof stokBirimSelectDoldur === 'function') stokBirimSelectDoldur(document.getElementById('birim'), null, 'Adet');
     if (typeof stokTarimAlanlariSifirla === 'function') stokTarimAlanlariSifirla();
     document.getElementById('kritikEsik').value = 5;
     document.getElementById('hedefEsik').value = 20;
@@ -656,8 +672,10 @@ function stokDuzenleModalAc(stokID) {
     malzemeDuzenleModalAc(gid);
     return;
   }
-  stokEkleModalGoster(() => {
+  stokEkleModalGoster(async () => {
+    if (typeof stokBirimleriYukle === 'function') await stokBirimleriYukle();
     stokDuzenlemeID = Number(stokID);
+    stokEkleMalzemeUyariGoster(false);
     document.getElementById('stokModalBaslik').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Stok Düzenle';
     document.getElementById('urunAdi').value = urun.UrunAdi || '';
     document.getElementById('kategori').value = urun.Kategori || '';
@@ -665,7 +683,11 @@ function stokDuzenleModalAc(stokID) {
     document.getElementById('alisFiyati').value = Number(urun.AlisFiyati || 0);
     document.getElementById('satisFiyati').value = Number(urun.SatisFiyati || 0);
     document.getElementById('miktar').value = Number(urun.MevcutMiktar || 0);
-    document.getElementById('birim').value = urun.Birim || 'Adet';
+    if (typeof stokBirimSelectDoldur === 'function') {
+      stokBirimSelectDoldur(document.getElementById('birim'), urun.Birim || 'Adet', 'Adet');
+    } else {
+      document.getElementById('birim').value = urun.Birim || 'Adet';
+    }
     document.getElementById('kritikEsik').value = Number.isFinite(Number(urun.KritikEsik)) ? Number(urun.KritikEsik) : 5;
     document.getElementById('hedefEsik').value = Number.isFinite(Number(urun.HedefEsik)) ? Number(urun.HedefEsik) : 20;
     if (typeof stokTarimAlanlariniDoldur === 'function') stokTarimAlanlariniDoldur(urun);
@@ -1031,6 +1053,7 @@ async function musteriSil(id) {
 let aktifMusteriDetayID = null;
 let musteriSatisSepet = [];
 let musteriSatisStokCache = [];
+let musteriReceteSepeteEklenenIds = new Set();
 let aktifMusteriDetayData = null;
 let aktifMusteriHareketler = [];
 let musteriIadeSepet = [];
@@ -1463,10 +1486,13 @@ async function musteriTaksitOdemeKaydet(event) {
 }
 
 function musteriSatisModalAc() {
-  musteriAltModalAc(document.getElementById('musteriSatisModal'), () => {
+  musteriAltModalAc(document.getElementById('musteriSatisModal'), async () => {
     const ad = document.getElementById('mdAdSoyad')?.textContent || 'Müşteri';
     const el = document.getElementById('mdSatisMusteri');
     if (el) el.textContent = ad;
+    await musteriDetayUrunleriDoldur();
+    musteriSatisSepetCiz();
+    musteriSatisSepetBadgeGuncelle();
     const arama = document.getElementById('mdSatisArama');
     if (arama) arama.value = '';
     musteriSatisAramaSonuclariniGizle();
@@ -1657,34 +1683,81 @@ function musteriSatisSepetCiz() {
   }
 }
 
-function musteriSatisSepeteEkle(urunIDArg) {
-  const urunID = Number(urunIDArg);
-  const miktar = 1;
-  if (!Number.isInteger(urunID) || urunID < 1) return;
-  const stok = musteriSatisStokCache.find((s) => Number(s.StokID) === urunID);
-  if (!stok) {
-    alert('Ürün bulunamadı.');
-    return;
+function musteriSatisSepetKalemSayisi() {
+  return musteriSatisSepet.reduce((acc, s) => acc + (Number(s.miktar) || 0), 0);
+}
+
+function musteriReceteSepeteKayit(receteID) {
+  const id = Number(receteID);
+  if (id > 0) musteriReceteSepeteEklenenIds.add(id);
+}
+
+function musteriReceteSepeteEklenenTemizle() {
+  musteriReceteSepeteEklenenIds.clear();
+}
+
+function musteriReceteSepeteEklenenDizi() {
+  return [...musteriReceteSepeteEklenenIds];
+}
+
+function musteriSatisSepetTemizle() {
+  musteriSatisSepet = [];
+  const odemeInp = document.getElementById('mdSatisOdenen');
+  if (odemeInp) {
+    odemeInp.value = 0;
+    odemeInp.dataset.manual = '0';
   }
+  musteriSatisSepetCiz();
+  musteriSatisSepetBadgeGuncelle();
+  musteriReceteSepeteEklenenTemizle();
+}
+
+function musteriSatisSepetBadgeGuncelle() {
+  const satirSay = musteriSatisSepet.length;
+  const adet = musteriSatisSepetKalemSayisi();
+  document.querySelectorAll('[data-musteri-sepet-badge]').forEach((el) => {
+    if (!satirSay) {
+      el.classList.add('d-none');
+      return;
+    }
+    el.classList.remove('d-none');
+    const metin = el.dataset.sepetBadgeMetin || 'short';
+    el.textContent = metin === 'long'
+      ? `Sepet (${adet} adet)`
+      : String(adet);
+  });
+}
+
+function musteriSatisSepeteEkle(urunIDArg, miktarEkle) {
+  const urunID = Number(urunIDArg);
+  const ekle = Math.max(1, Math.floor(Number(miktarEkle) || 1));
+  if (!Number.isInteger(urunID) || urunID < 1) return false;
+  const stok = musteriSatisStokCache.find((s) => Number(s.StokID) === urunID);
+  if (!stok) return false;
   const birimFiyat = Math.round(Number(stok.SatisFiyati || 0) * 100) / 100;
   const satir = musteriSatisSepet.find((s) => s.urunID === urunID);
-  const yeniMiktar = (satir ? satir.miktar : 0) + miktar;
-  if (satir) satir.miktar = yeniMiktar;
-  else {
+  const yeniMiktar = (satir ? satir.miktar : 0) + ekle;
+  if (satir) {
+    satir.miktar = yeniMiktar;
+    if (!satir.fiyat && birimFiyat > 0) satir.fiyat = birimFiyat;
+  } else {
     musteriSatisSepet.push({
       urunID,
       urunAdi: stok.UrunAdi,
       fiyat: birimFiyat,
-      miktar,
+      miktar: ekle,
     });
   }
   musteriSatisSepetCiz();
+  musteriSatisSepetBadgeGuncelle();
   musteriSatisSepetSonEklenenOdak(urunID);
+  return true;
 }
 
 function musteriSatisSepettenSil(urunID) {
   musteriSatisSepet = musteriSatisSepet.filter((s) => s.urunID !== Number(urunID));
   musteriSatisSepetCiz();
+  musteriSatisSepetBadgeGuncelle();
 }
 
 function musteriHareketBakiyeDelta(h) {
@@ -1843,10 +1916,7 @@ async function musteriDetayModalAc(id) {
     '<tr><td colspan="8" class="text-center text-muted py-4">Yükleniyor…</td></tr>';
   document.getElementById('musteriDetayOdemeForm').reset();
   document.getElementById('musteriDetaySatisForm').reset();
-  musteriSatisSepet = [];
-  document.getElementById('mdSatisOdenen').value = 0;
-  document.getElementById('mdSatisOdenen').dataset.manual = '0';
-  musteriSatisSepetCiz();
+  musteriSatisSepetTemizle();
   musteriDetaySatisOdemeAlaniGuncelle();
   await musteriDetayUrunleriDoldur();
   await musteriDetayYukle();
@@ -1965,6 +2035,7 @@ async function musteriDetaySatisKaydet(event) {
     odemeSekli: document.getElementById('mdSatisOdemeSekli').value,
     aciklama: document.getElementById('mdSatisAciklama').value.trim() || null,
     kullanici: aktifKullanici,
+    receteIDs: typeof musteriReceteSepeteEklenenDizi === 'function' ? musteriReceteSepeteEklenenDizi() : [],
   };
   const res = await fetch(`/api/musteri/${aktifMusteriDetayID}/satis-sepet`, {
     method: 'POST',
@@ -1981,11 +2052,15 @@ async function musteriDetaySatisKaydet(event) {
   const satisSonrasi = async () => {
     odemeSonrasiBildir(data.message || 'Satış kaydedildi.', data?.makbuz);
     document.getElementById('musteriDetaySatisForm').reset();
-    musteriSatisSepet = [];
-    document.getElementById('mdSatisOdenen').value = 0;
-    document.getElementById('mdSatisOdenen').dataset.manual = '0';
-    musteriSatisSepetCiz();
+    musteriSatisSepetTemizle();
     musteriDetaySatisOdemeAlaniGuncelle();
+    const seciliRecete = typeof receteAktifKayitliID !== 'undefined' ? receteAktifKayitliID : null;
+    if (typeof musteriReceteSolListeYukle === 'function') {
+      await musteriReceteSolListeYukle(seciliRecete);
+      if (seciliRecete && typeof musteriReceteKayitliGoster === 'function') {
+        await musteriReceteKayitliGoster(seciliRecete);
+      }
+    }
     await musteriDetayUrunleriDoldur();
     await musteriDetayYukle();
     musterileriGetir();
@@ -2243,6 +2318,13 @@ async function musteriHareketSil(hareketID) {
   }
   alert(data.message || 'İşlem silindi.');
   await musteriDetayYukle();
+  const seciliRecete = typeof receteAktifKayitliID !== 'undefined' ? receteAktifKayitliID : null;
+  if (typeof musteriReceteSolListeYukle === 'function') {
+    await musteriReceteSolListeYukle(seciliRecete);
+    if (seciliRecete && typeof musteriReceteKayitliGoster === 'function') {
+      await musteriReceteKayitliGoster(seciliRecete);
+    }
+  }
   musterileriGetir();
   stoklariGetir();
   ozetBilgileriniGetir();
@@ -4957,10 +5039,14 @@ function tedAlimHizliStokEkleAc() {
   tedAlimTaslak = tedAlimDurumOku();
   tedAlimStokEkleDonus = true;
   modalKapat(document.getElementById('tedarikciAlimModal'));
-  stokEkleModalGoster(() => {
+  stokEkleModalGoster(async () => {
+    if (typeof stokBirimleriYukle === 'function') await stokBirimleriYukle();
     stokDuzenlemeID = null;
-    document.getElementById('stokModalBaslik').innerHTML = '<i class="fa-solid fa-plus"></i> Yeni Ürün Ekle';
+    document.getElementById('stokModalBaslik').innerHTML = '<i class="fa-solid fa-box"></i> Genel stok ürünü';
+    stokEkleMalzemeUyariGoster(true);
     document.getElementById('stokEkleForm').reset();
+    if (typeof stokTarimAlanlariSifirla === 'function') stokTarimAlanlariSifirla();
+    if (typeof stokBirimSelectDoldur === 'function') stokBirimSelectDoldur(document.getElementById('birim'), null, 'Adet');
     document.getElementById('kritikEsik').value = 5;
     document.getElementById('hedefEsik').value = 20;
   });

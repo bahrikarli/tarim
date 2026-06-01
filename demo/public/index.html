@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -331,6 +331,54 @@
         #musteriReceteAramaSonuclari.acik { display: block !important; }
         #musteriReceteAramaSonuclari .list-group-item { cursor: pointer; font-size: 0.9rem; }
         #musteriReceteAramaSonuclari .list-group-item:hover { background: #e8f5e9; }
+        .recete-split { min-height: min(72vh, 640px); }
+        .recete-split-sol { background: #f8faf8; max-height: min(72vh, 640px); overflow-y: auto; }
+        .recete-split-sag { max-height: min(72vh, 640px); overflow-y: auto; background: #fff; }
+        .recete-sol-liste .list-group-item { border-left: 3px solid transparent; padding: 0.65rem 0.75rem; }
+        .recete-sol-liste .list-group-item.active {
+            border-left-color: #2e7d32;
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+        .recete-sag-bos {
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #6c757d;
+        }
+        .recete-kalem { background: #fff; }
+        .recete-kalem-ust { min-height: 42px; }
+        .recete-kalem-ust .btn-dozaj { font-size: 0.75rem; line-height: 1.2; }
+        .recete-kalem-detay { background: #fafcfa; font-size: 0.8rem; }
+        .recete-kalem-not { font-weight: 400; line-height: 1.35; }
+        .recete-plan-tablo td { padding: 0.2rem 0.35rem; vertical-align: middle; }
+        .recete-plan-tablo tr + tr td { border-top: 1px dashed #dee2e6; }
+        .recete-plan-fatura { font-size: 0.8rem; }
+        .recete-plan-fatura thead th {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: #6c757d;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            padding: 0.35rem 0.5rem;
+        }
+        .recete-plan-fatura tbody td {
+            padding: 0.4rem 0.5rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #eee;
+        }
+        .recete-plan-fatura tbody tr:last-child td { border-bottom: none; }
+        .recete-plan-fatura .recete-plan-urun { max-width: 0; width: 55%; }
+        .recete-plan-fatura tr.recete-plan-alt-toplam td {
+            background: #f8faf8;
+            border-top: 1px solid #dee2e6;
+        }
+        #musteriReceteYeniModal .modal-content { border-radius: 14px; overflow: hidden; }
         .malzeme-dozaj-panel { min-height: 320px; }
         .malzeme-dozaj-scroll {
             max-height: min(380px, 55vh);
@@ -833,6 +881,9 @@
                                 <button type="button" class="nav-link" data-tanim-tab="malzemeler" onclick="tanimTabAktif('malzemeler'); malzemeGruplariPanelYukle();"><i class="fa-solid fa-flask me-1"></i> Malzemeler</button>
                             </li>
                             <li class="nav-item">
+                                <button type="button" class="nav-link" data-tanim-tab="birimler" onclick="tanimTabAktif('birimler')"><i class="fa-solid fa-ruler me-1"></i> Birimler</button>
+                            </li>
+                            <li class="nav-item">
                                 <button type="button" class="nav-link" data-tanim-tab="recete-test" onclick="tanimTabAktif('recete-test'); receteTestUrunSelectDoldur();"><i class="fa-solid fa-calculator me-1"></i> Reçete testi</button>
                             </li>
                         </ul>
@@ -865,6 +916,30 @@
                             <p class="text-muted small mb-2">Önce <strong>ürün adını</strong> yazın; altta her ambalaj için ayrı alış, satış ve stok adedi girin. Dozaj (arpa, pancar…) ambalaj boyutundan bağımsızdır.</p>
                             <button type="button" class="btn btn-success mb-3" onclick="malzemeDuzenleModalAc()"><i class="fa-solid fa-plus me-1"></i>Yeni malzeme</button>
                             <div id="malzemeGrupListe"></div>
+                        </div>
+                        <div id="tanimPanelBirimler" class="d-none">
+                            <p class="text-muted small mb-2">Stok ekleme, malzeme ambalajı ve dozaj satırlarındaki birim listeleri buradan gelir (Lt, Kg, Adet…).</p>
+                            <form id="stokBirimForm" class="row g-2 align-items-end mb-3" onsubmit="stokBirimKaydet(event)">
+                                <div class="col-md-3">
+                                    <label class="form-label" for="stokBirimKodu">Birim kodu</label>
+                                    <input type="text" class="form-control" id="stokBirimKodu" maxlength="20" required placeholder="Lt">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="stokBirimAciklama">Açıklama</label>
+                                    <input type="text" class="form-control" id="stokBirimAciklama" maxlength="80" placeholder="Litre (sıvı)">
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="submit" class="btn btn-success w-100"><i class="fa-solid fa-plus me-1"></i>Ekle</button>
+                                </div>
+                            </form>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light">
+                                        <tr><th>Kod</th><th>Açıklama</th><th class="text-end">İşlem</th></tr>
+                                    </thead>
+                                    <tbody id="stokBirimTabloGovde"></tbody>
+                                </table>
+                            </div>
                         </div>
                         <div id="tanimPanelReceteTest" class="d-none">
                             <p class="text-muted small">Dekar × dozaj = toplam ihtiyaç; sistem stoktaki ambalaj boyutlarına (1 Lt, 5 Lt…) böler.</p>
@@ -907,18 +982,20 @@
                                     <h6 class="mb-0 text-success"><i class="fa-solid fa-box me-1"></i>Ambalajlar</h6>
                                     <button type="button" class="btn btn-sm btn-outline-success" onclick="malzemeAmbalajSatirEkle()"><i class="fa-solid fa-plus me-1"></i>Ambalaj ekle</button>
                                 </div>
-                                <p class="small text-muted mb-2">Boyut, barkod, alış, satış, stok adedi — satır başına bağımsız.</p>
+                                <p class="small text-muted mb-2">Boyut, barkod, alış, satış, stok ve uyarı eşikleri — her ambalaj satırı ayrı stok kartıdır.</p>
                                 <div class="table-responsive">
-                                    <table class="table table-sm table-bordered align-middle mb-0">
+                                    <table class="table table-sm table-bordered align-middle mb-0 malzeme-ambalaj-tablo">
                                         <thead class="table-light">
                                             <tr>
-                                                <th style="width:90px">Boyut</th>
-                                                <th style="width:70px">Birim</th>
+                                                <th style="width:72px">Boyut</th>
+                                                <th style="width:58px">Birim</th>
                                                 <th>Barkod</th>
-                                                <th style="width:100px">Alış ₺</th>
-                                                <th style="width:100px">Satış ₺</th>
-                                                <th style="width:90px">Stok adet</th>
-                                                <th style="width:44px"></th>
+                                                <th style="width:76px">Alış ₺</th>
+                                                <th style="width:76px">Satış ₺</th>
+                                                <th style="width:64px" title="Bu adedin altı kırmızı">Kritik</th>
+                                                <th style="width:64px" title="Bu adedin üstü yeşil">Hedef</th>
+                                                <th style="width:64px">Stok</th>
+                                                <th style="width:40px"></th>
                                             </tr>
                                         </thead>
                                         <tbody id="malzemeAmbalajGovde"></tbody>
@@ -926,7 +1003,12 @@
                                 </div>
                             </div>
                             <div class="col-lg-5">
-                                <div class="malzeme-dozaj-panel border border-success-subtle rounded-3 p-3 bg-light h-100">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="malzemeDozajGerekli" checked onchange="malzemeDozajPanelGuncelle()">
+                                    <label class="form-check-label fw-semibold" for="malzemeDozajGerekli">Dozaj gerekli</label>
+                                </div>
+                                <p class="small text-muted mb-2" id="malzemeDozajKapaliNot">Dozaj kapalı — reçetede bu malzeme stoktan elle eklenir; dekar × ürün hesabı yapılmaz.</p>
+                                <div id="malzemeDozajWrap" class="malzeme-dozaj-panel border border-success-subtle rounded-3 p-3 bg-light">
                                     <h6 class="text-success mb-1"><i class="fa-solid fa-wheat-awn me-1"></i>Tarım ürününe göre dozaj</h6>
                                     <p class="small text-muted mb-2">Lt/Kg · dekar — ambalaj boyutundan bağımsız (arpa, pancar…).</p>
                                     <div id="malzemeDuzenleDozaj" class="malzeme-dozaj-scroll"></div>
@@ -963,12 +1045,16 @@
                                 <button type="button" class="btn btn-sm btn-outline-dark shadow-sm text-nowrap" onclick="stokAlfabetikRaporYazdir()">
                                     <i class="fa-solid fa-print me-1"></i>Stok Raporu Al
                                 </button>
-                                <button type="button" class="btn btn-sm btn-success shadow-sm text-nowrap" onclick="stokEkleModalAc()">
-                                    <i class="fa-solid fa-plus me-1"></i>Yeni Ürün
+                                <button type="button" class="btn btn-sm btn-success shadow-sm text-nowrap" onclick="malzemeDuzenleModalAc()" title="Gübre, ilaç — ambalaj boyutları ve dekar dozajı">
+                                    <i class="fa-solid fa-flask me-1"></i>Yeni malzeme
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary shadow-sm text-nowrap" onclick="stokEkleModalAc()" title="Reçete/dozaj gerektirmeyen tek kalem ürünler">
+                                    <i class="fa-solid fa-box me-1"></i>Genel stok
                                 </button>
                             </div>
                         </div>
-                        <p class="small text-muted mb-2" id="stokListeToplamMetin">Toplam <strong class="text-dark">0</strong> ürün bulunmaktadır.</p>
+                        <p class="small text-muted mb-1" id="stokListeToplamMetin">Toplam <strong class="text-dark">0</strong> ürün bulunmaktadır.</p>
+                        <p class="small text-muted mb-2">Gübre ve ilaçların tamamı <strong>Yeni malzeme</strong> ile eklenmeli; tek ambalajlı sarf için <strong>Genel stok</strong> yeterli.</p>
                         <div class="table-responsive">
                             <table class="table table-hover table-sm align-middle mb-0" style="font-size:0.85rem;">
                                 <thead>
@@ -1120,8 +1206,9 @@
                                     <button type="button" class="btn btn-success" onclick="musteriTahsilatModalAc()">
                                         <i class="fa-solid fa-money-bill-transfer me-1"></i>Ödeme Al
                                     </button>
-                                    <button type="button" class="btn btn-primary" onclick="musteriSatisModalAc()">
+                                    <button type="button" class="btn btn-primary position-relative" onclick="musteriSatisModalAc()">
                                         <i class="fa-solid fa-cart-plus me-1"></i>Satış Yap
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" data-musteri-sepet-badge data-sepet-badge-metin="short">0</span>
                                     </button>
                                 </div>
                                 <div class="card shadow-sm border-0">
@@ -1155,80 +1242,111 @@
         </div>
 
         <div class="modal fade" id="musteriReceteModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width:min(1180px,96vw);">
                 <div class="modal-content border-0 shadow">
-                    <div class="modal-header text-white" style="background: linear-gradient(90deg, #1b5e20, #43a047);">
+                    <div class="modal-header text-white py-3" style="background: linear-gradient(90deg, #1b5e20, #43a047);">
                         <div>
-                            <h5 class="modal-title mb-0"><i class="fa-solid fa-flask me-2"></i>Reçete oluştur</h5>
+                            <h5 class="modal-title mb-0"><i class="fa-solid fa-flask me-2"></i>Reçeteler</h5>
                             <small class="text-white-50">Müşteri: <span id="musteriReceteMusteriAd">—</span></small>
                         </div>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-light position-relative" onclick="musteriReceteSepetModalAc()" title="Satış sepetini aç">
+                                <i class="fa-solid fa-basket-shopping me-1 text-success"></i>Sepet
+                                <span class="badge bg-danger ms-1 d-none" data-musteri-sepet-badge data-sepet-badge-metin="long">0</span>
+                            </button>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
                     </div>
-                    <div class="modal-body">
-                        <div id="musteriRecetePanelGiris">
-                            <p class="text-muted small mb-3">Hangi tarım ürünü ve kaç dekar için reçete hazırlanacak? Malzemeleri bir sonraki adımda stoktan seçeceksiniz.</p>
-                            <div class="row g-3">
-                                <div class="col-md-7">
-                                    <label class="form-label fw-semibold" for="musteriReceteUrunID">Tarım ürünü</label>
-                                    <select class="form-select form-select-lg" id="musteriReceteUrunID" required></select>
+                    <div class="modal-body p-0">
+                        <div class="recete-split row g-0">
+                            <aside class="col-12 col-md-4 col-lg-3 recete-split-sol border-end">
+                                <div class="p-3">
+                                    <button type="button" class="btn btn-success w-100 shadow-sm" onclick="musteriReceteYeniModalAc()">
+                                        <i class="fa-solid fa-plus me-2"></i>Yeni reçete
+                                    </button>
+                                    <div class="small text-muted mt-3 mb-2 fw-semibold text-uppercase" style="letter-spacing:.04em;font-size:.7rem;">Kayıtlı reçeteler</div>
+                                    <div id="musteriReceteSolListe" class="recete-sol-liste">
+                                        <p class="text-muted small mb-0 py-2">Yükleniyor…</p>
+                                    </div>
                                 </div>
-                                <div class="col-md-5">
-                                    <label class="form-label fw-semibold" for="musteriReceteDekar">Dekar</label>
-                                    <input type="number" class="form-control form-control-lg" id="musteriReceteDekar" min="0.01" step="0.01" value="10" required>
+                            </aside>
+                            <section class="col-12 col-md-8 col-lg-9 recete-split-sag">
+                                <div id="musteriReceteSagBos" class="recete-sag-bos p-4">
+                                    <i class="fa-solid fa-seedling fa-2x mb-3 text-success opacity-50"></i>
+                                    <p class="mb-2 fw-semibold text-secondary">Reçete seçin veya yeni oluşturun</p>
+                                    <p class="small mb-0">Soldan kayıtlı bir reçeteye tıklayın veya <strong>Yeni reçete</strong> ile başlayın.</p>
                                 </div>
-                            </div>
-                            <div class="mt-3 d-flex flex-wrap gap-2">
-                                <button type="button" class="btn btn-success btn-lg flex-grow-1" id="musteriReceteDevamBtn" onclick="musteriReceteDevam()">
-                                    <i class="fa-solid fa-arrow-right me-2"></i>Malzeme ekle
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-lg" onclick="musteriReceteKayitliPanelAc()">
-                                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Kayıtlı reçeteler
-                                </button>
-                            </div>
+                                <div id="musteriRecetePanelCalisma" class="d-none p-3">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2" id="musteriReceteOzetBar">—</span>
+                                        <span class="small text-muted">Yeni reçete — düzenleme</span>
+                                    </div>
+                                    <div class="row g-2 mb-3 align-items-end">
+                                        <div class="col-md-5">
+                                            <label class="form-label small mb-0 fw-semibold">Tarım ürünü</label>
+                                            <select class="form-select form-select-sm" id="musteriReceteUrunIDCalisma" onchange="musteriReceteUrunDekarDegisti()"></select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label small mb-0 fw-semibold">Dekar</label>
+                                            <input type="number" class="form-control form-control-sm" id="musteriReceteDekarCalisma" min="0.01" step="0.01" onchange="musteriReceteUrunDekarDegisti()">
+                                        </div>
+                                    </div>
+                                    <label class="form-label fw-semibold small mb-1"><i class="fa-solid fa-barcode me-1"></i>Stoktan malzeme ekle (ad veya barkod)</label>
+                                    <div class="position-relative mb-3">
+                                        <input type="text" class="form-control" id="musteriReceteArama" placeholder="Ürün adı veya barkod okutun…" autocomplete="off"
+                                            oninput="musteriReceteAramaGuncelle(this.value)" onkeydown="musteriReceteAramaKeydown(event)">
+                                        <div id="musteriReceteAramaSonuclari" class="list-group position-absolute w-100 mt-1 shadow-sm" style="z-index:1050;display:none;max-height:220px;overflow:auto;"></div>
+                                    </div>
+                                    <div id="musteriReceteSatirlar" class="mb-3"></div>
+                                    <div class="mb-3">
+                                        <label class="form-label small mb-0" for="musteriReceteNotlar">Not (isteğe bağlı)</label>
+                                        <input type="text" class="form-control form-control-sm" id="musteriReceteNotlar" maxlength="500" placeholder="Örn. uygulama tarihi">
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2 justify-content-between border-top pt-3">
+                                        <button type="button" class="btn btn-success" id="musteriReceteKaydetBtn" onclick="musteriReceteKaydet()">
+                                            <i class="fa-solid fa-floppy-disk me-1"></i>Reçeteyi kaydet
+                                        </button>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button type="button" class="btn btn-outline-primary" onclick="musteriReceteSepeteEkleAktif()">
+                                                <i class="fa-solid fa-cart-plus me-1"></i>Sepete ekle
+                                            </button>
+                                            <button type="button" class="btn btn-outline-dark" onclick="musteriReceteYazdir()">
+                                                <i class="fa-solid fa-print me-1"></i>Yazdır
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="musteriReceteSagDetay" class="d-none p-3"></div>
+                            </section>
                         </div>
-                        <div id="musteriRecetePanelCalisma" class="d-none">
-                            <div class="alert alert-success py-2 mb-3 small" id="musteriReceteOzetBar">—</div>
-                            <div class="row g-2 mb-3 align-items-end">
-                                <div class="col-md-5">
-                                    <label class="form-label small mb-0 fw-semibold">Tarım ürünü</label>
-                                    <select class="form-select form-select-sm" id="musteriReceteUrunIDCalisma" onchange="musteriReceteUrunDekarDegisti()"></select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label small mb-0 fw-semibold">Dekar</label>
-                                    <input type="number" class="form-control form-control-sm" id="musteriReceteDekarCalisma" min="0.01" step="0.01" onchange="musteriReceteUrunDekarDegisti()">
-                                </div>
-                                <div class="col-md-4 text-md-end">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="musteriReceteGeri()"><i class="fa-solid fa-arrow-left me-1"></i>Geri</button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="musteriReceteKayitliPanelAc()"><i class="fa-solid fa-clock-rotate-left me-1"></i>Kayıtlı</button>
-                                </div>
-                            </div>
-                            <label class="form-label fw-semibold small mb-1"><i class="fa-solid fa-barcode me-1"></i>Stoktan malzeme ekle (ad veya barkod)</label>
-                            <div class="position-relative mb-3">
-                                <input type="text" class="form-control" id="musteriReceteArama" placeholder="Ürün adı veya barkod okutun…" autocomplete="off"
-                                    oninput="musteriReceteAramaGuncelle(this.value)" onkeydown="musteriReceteAramaKeydown(event)">
-                                <div id="musteriReceteAramaSonuclari" class="list-group position-absolute w-100 mt-1 shadow-sm" style="z-index:1050;display:none;max-height:220px;overflow:auto;"></div>
-                            </div>
-                            <div id="musteriReceteSatirlar" class="mb-3"></div>
-                            <div class="mb-3">
-                                <label class="form-label small mb-0" for="musteriReceteNotlar">Not (isteğe bağlı)</label>
-                                <input type="text" class="form-control form-control-sm" id="musteriReceteNotlar" maxlength="500" placeholder="Örn. uygulama tarihi">
-                            </div>
-                            <div class="d-flex flex-wrap gap-2 justify-content-between">
-                                <button type="button" class="btn btn-success" id="musteriReceteKaydetBtn" onclick="musteriReceteKaydet()">
-                                    <i class="fa-solid fa-floppy-disk me-1"></i>Reçeteyi kaydet
-                                </button>
-                                <button type="button" class="btn btn-outline-dark" onclick="musteriReceteYazdir()">
-                                    <i class="fa-solid fa-print me-1"></i>Yazdır
-                                </button>
-                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="musteriReceteYeniModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header text-white border-0 py-3" style="background:linear-gradient(135deg,#2e7d32,#66bb6a);">
+                        <h5 class="modal-title mb-0"><i class="fa-solid fa-plus me-2"></i>Yeni reçete</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                    </div>
+                    <div class="modal-body px-4 py-4">
+                        <p class="text-muted small mb-3">Tarım ürünü ve dekar seçin; malzemeleri sonraki adımda stoktan ekleyeceksiniz.</p>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small" for="musteriReceteUrunID">Tarım ürünü</label>
+                            <select class="form-select" id="musteriReceteUrunID" required></select>
                         </div>
-                        <div id="musteriRecetePanelKayitli" class="d-none">
-                            <div class="d-flex justify-content-between mb-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="musteriReceteGeriKayitliden()"><i class="fa-solid fa-arrow-left me-1"></i>Geri</button>
-                            </div>
-                            <div id="musteriReceteKayitliListe"></div>
-                            <div id="musteriReceteKayitliDetay" class="d-none mt-3"></div>
+                        <div class="mb-0">
+                            <label class="form-label fw-semibold small" for="musteriReceteDekar">Dekar</label>
+                            <input type="number" class="form-control" id="musteriReceteDekar" min="0.01" step="0.01" value="10" required>
                         </div>
+                    </div>
+                    <div class="modal-footer border-0 px-4 pb-4 pt-0 gap-2">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Vazgeç</button>
+                        <button type="button" class="btn btn-success px-4" id="musteriReceteDevamBtn" onclick="musteriReceteDevam()">
+                            <i class="fa-solid fa-arrow-right me-1"></i>Malzeme ekle
+                        </button>
                     </div>
                 </div>
             </div>
@@ -2430,55 +2548,60 @@
         </div>
 
     <div class="modal fade" id="ayarlarModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable ayarlar-modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-warning-subtle">
                     <h5 class="modal-title"><i class="fa-solid fa-gear me-2"></i>Sistem Ayarları</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="ayarlarForm" onsubmit="ayarlarKaydet(event)">
-                    <div class="modal-body">
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" role="switch" id="ayrOtomatikMakbuz">
-                            <label class="form-check-label fw-semibold" for="ayrOtomatikMakbuz">Gelen her ödeme için otomatik makbuz yazdır</label>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Makbuz başlangıç numarası</label>
-                            <input type="number" min="1" step="1" class="form-control" id="ayrMakbuzBaslangicNo" placeholder="Örn: 1001">
-                            <div class="form-text">Kaydet dediğinizde sonraki makbuz numarası buna göre ayarlanır.</div>
-                        </div>
-                        <hr>
-                        <h6 class="fw-bold mb-2">Şirket Bilgileri (Makbuz Üst Bilgisi)</h6>
-                        <div class="mb-2">
-                            <label class="form-label">Şirket Ünvanı</label>
-                            <input type="text" class="form-control" id="ayrSirketUnvan" maxlength="200">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Yetkili Ad Soyad</label>
-                            <input type="text" class="form-control" id="ayrSirketYetkiliAdSoyad" maxlength="120">
-                        </div>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <label class="form-label">Vergi No</label>
-                                <input type="text" class="form-control" id="ayrSirketVergiNo" maxlength="40">
+                    <div class="modal-body p-0">
+                        <div class="row g-0 ayarlar-modal-split">
+                            <div class="col-lg-7 ayarlar-modal-sol p-3 p-md-4">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="ayrOtomatikMakbuz">
+                                    <label class="form-check-label fw-semibold" for="ayrOtomatikMakbuz">Gelen her ödeme için otomatik makbuz yazdır</label>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Makbuz başlangıç numarası</label>
+                                    <input type="number" min="1" step="1" class="form-control" id="ayrMakbuzBaslangicNo" placeholder="Örn: 1001">
+                                    <div class="form-text">Kaydet dediğinizde sonraki makbuz numarası buna göre ayarlanır.</div>
+                                </div>
+                                <hr class="my-3">
+                                <h6 class="fw-bold mb-2">Şirket Bilgileri (Makbuz Üst Bilgisi)</h6>
+                                <div class="mb-2">
+                                    <label class="form-label">Şirket Ünvanı</label>
+                                    <input type="text" class="form-control" id="ayrSirketUnvan" maxlength="200">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Yetkili Ad Soyad</label>
+                                    <input type="text" class="form-control" id="ayrSirketYetkiliAdSoyad" maxlength="120">
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="form-label">Vergi No</label>
+                                        <input type="text" class="form-control" id="ayrSirketVergiNo" maxlength="40">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Telefon</label>
+                                        <input type="text" class="form-control" id="ayrSirketTelefon" maxlength="40">
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <label class="form-label">Adres</label>
+                                    <textarea class="form-control" id="ayrSirketAdres" rows="2" maxlength="300"></textarea>
+                                </div>
                             </div>
-                            <div class="col-6">
-                                <label class="form-label">Telefon</label>
-                                <input type="text" class="form-control" id="ayrSirketTelefon" maxlength="40">
+                            <div class="col-lg-5 ayarlar-modal-sag p-3 p-md-4">
+                                <h6 class="fw-bold mb-2"><i class="fa-solid fa-database me-1 text-primary"></i>Yedekleme</h6>
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="ayarYedekAl()"><i class="fa-solid fa-database me-1"></i>Şimdi Yedek Al</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="ayarYedekListele()"><i class="fa-solid fa-rotate-right me-1"></i>Listeyi Yenile</button>
+                                </div>
+                                <div class="ayarlar-yedek-kutu border rounded bg-light p-2">
+                                    <div id="ayrYedekListe" class="small text-muted">Yedekler yükleniyor…</div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="mt-2">
-                            <label class="form-label">Adres</label>
-                            <textarea class="form-control" id="ayrSirketAdres" rows="2" maxlength="300"></textarea>
-                        </div>
-                        <hr>
-                        <h6 class="fw-bold mb-2">Yedekleme</h6>
-                        <div class="d-flex gap-2 mb-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="ayarYedekAl()"><i class="fa-solid fa-database me-1"></i>Şimdi Yedek Al</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="ayarYedekListele()"><i class="fa-solid fa-rotate-right me-1"></i>Listeyi Yenile</button>
-                        </div>
-                        <div class="border rounded bg-light p-2" style="max-height:170px;overflow:auto;">
-                            <div id="ayrYedekListe" class="small text-muted">Yedekler yükleniyor…</div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -2499,6 +2622,13 @@
                 </div>
                 <form id="stokEkleForm" onsubmit="stokKaydet(event)">
                     <div class="modal-body py-3 px-3 px-md-4">
+                        <div class="alert alert-info border-info-subtle small py-2 mb-3 d-none" id="stokEkleMalzemeUyari" role="status">
+                            <i class="fa-solid fa-flask me-1"></i>
+                            <strong>İlaç, gübre, tohum ilacı</strong> için bu ekran uygun değildir.
+                            Ambalaj listesi ve dekar dozajı
+                            <button type="button" class="btn btn-link btn-sm p-0 align-baseline" onclick="stokMalzemeEkraninaGec()">malzeme ekranından</button>
+                            tanımlanır.
+                        </div>
                         <!-- Piyasa: STOK_PIYASA_PANEL_AKTIF=true + #stokPiyasaPanel d-none kaldir -->
                         <div id="stokPiyasaPanel" class="stok-piyasa-panel d-none mb-3">
                             <div class="stok-piyasa-kutu">
@@ -2572,31 +2702,18 @@
                                 </div>
                                 <div class="col-6 col-md-2">
                                     <label class="form-label fw-semibold text-secondary" for="birim">Birim</label>
-                                    <select class="form-select" id="birim">
-                                        <option value="Adet" selected>Adet (bidon/çuval)</option>
-                                        <option value="Kutu">Kutu</option>
-                                        <option value="Torba">Torba</option>
-                                    </select>
+                                    <select class="form-select" id="birim"></select>
                                 </div>
                             </div>
                             <p class="small text-muted mb-0"><i class="fa-solid fa-circle-info me-1"></i> Satış fiyatı kasada kullanılır; alış maliyet takibi içindir.</p>
                         </section>
 
                         <section class="stok-modal-bolum border-success-subtle" aria-labelledby="stokBolumTarim">
-                            <div class="stok-modal-bolum-baslik text-success" id="stokBolumTarim"><i class="fa-solid fa-wheat-awn"></i> Tarım malzemesi — ambalaj stoku</div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" id="stokTarimMalzemeAktif">
-                                <label class="form-check-label" for="stokTarimMalzemeAktif">Bu stok tarla uygulamasına bağlı (ilaç, gübre vb.)</label>
-                            </div>
-                            <div id="stokTarimAlanWrap" class="d-none">
-                                <div class="alert alert-success-subtle border-success small mb-2">
-                                    <i class="fa-solid fa-flask me-1"></i>
-                                    Tarım malzemeleri <strong>ürün adı + ambalaj listesi</strong> olarak kaydedilir. Her ambalajın alışı, satışı ve stoğu ayrıdır.
-                                </div>
-                                <button type="button" class="btn btn-success w-100" onclick="malzemeDuzenleModalAc()">
-                                    <i class="fa-solid fa-boxes-stacked me-1"></i>Malzeme / ambalaj düzenle
-                                </button>
-                            </div>
+                            <div class="stok-modal-bolum-baslik text-success" id="stokBolumTarim"><i class="fa-solid fa-wheat-awn"></i> Tarım malzemesi mi?</div>
+                            <p class="small text-muted mb-2">Gübre / ilaç için üstteki uyarıya bakın — <strong>Yeni malzeme</strong> düğmesini kullanın.</p>
+                            <button type="button" class="btn btn-outline-success btn-sm w-100" onclick="stokMalzemeEkraninaGec()">
+                                <i class="fa-solid fa-flask me-1"></i>Malzeme ekranına geç (ambalaj + dozaj)
+                            </button>
                         </section>
 
                         <section class="stok-modal-bolum stok-modal-bolum-uyari" aria-labelledby="stokBolumUyari">
@@ -3088,10 +3205,10 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/utils.js?v=1.0.53"></script>
-    <script src="js/navigation.js?v=1.0.53"></script>
-    <script src="js/tanimlamalar.js?v=4"></script>
-    <script src="js/recete.js?v=8"></script>
-    <script src="app.js?v=1.0.53"></script>
+    <script src="js/utils.js?v=1.0.55"></script>
+    <script src="js/navigation.js?v=1.0.55"></script>
+    <script src="js/tanimlamalar.js?v=5"></script>
+    <script src="js/recete.js?v=17"></script>
+    <script src="app.js?v=1.0.55"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -2548,55 +2548,60 @@
         </div>
 
     <div class="modal fade" id="ayarlarModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable ayarlar-modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-warning-subtle">
                     <h5 class="modal-title"><i class="fa-solid fa-gear me-2"></i>Sistem Ayarları</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="ayarlarForm" onsubmit="ayarlarKaydet(event)">
-                    <div class="modal-body">
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" role="switch" id="ayrOtomatikMakbuz">
-                            <label class="form-check-label fw-semibold" for="ayrOtomatikMakbuz">Gelen her ödeme için otomatik makbuz yazdır</label>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Makbuz başlangıç numarası</label>
-                            <input type="number" min="1" step="1" class="form-control" id="ayrMakbuzBaslangicNo" placeholder="Örn: 1001">
-                            <div class="form-text">Kaydet dediğinizde sonraki makbuz numarası buna göre ayarlanır.</div>
-                        </div>
-                        <hr>
-                        <h6 class="fw-bold mb-2">Şirket Bilgileri (Makbuz Üst Bilgisi)</h6>
-                        <div class="mb-2">
-                            <label class="form-label">Şirket Ünvanı</label>
-                            <input type="text" class="form-control" id="ayrSirketUnvan" maxlength="200">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Yetkili Ad Soyad</label>
-                            <input type="text" class="form-control" id="ayrSirketYetkiliAdSoyad" maxlength="120">
-                        </div>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <label class="form-label">Vergi No</label>
-                                <input type="text" class="form-control" id="ayrSirketVergiNo" maxlength="40">
+                    <div class="modal-body p-0">
+                        <div class="row g-0 ayarlar-modal-split">
+                            <div class="col-lg-7 ayarlar-modal-sol p-3 p-md-4">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="ayrOtomatikMakbuz">
+                                    <label class="form-check-label fw-semibold" for="ayrOtomatikMakbuz">Gelen her ödeme için otomatik makbuz yazdır</label>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Makbuz başlangıç numarası</label>
+                                    <input type="number" min="1" step="1" class="form-control" id="ayrMakbuzBaslangicNo" placeholder="Örn: 1001">
+                                    <div class="form-text">Kaydet dediğinizde sonraki makbuz numarası buna göre ayarlanır.</div>
+                                </div>
+                                <hr class="my-3">
+                                <h6 class="fw-bold mb-2">Şirket Bilgileri (Makbuz Üst Bilgisi)</h6>
+                                <div class="mb-2">
+                                    <label class="form-label">Şirket Ünvanı</label>
+                                    <input type="text" class="form-control" id="ayrSirketUnvan" maxlength="200">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Yetkili Ad Soyad</label>
+                                    <input type="text" class="form-control" id="ayrSirketYetkiliAdSoyad" maxlength="120">
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="form-label">Vergi No</label>
+                                        <input type="text" class="form-control" id="ayrSirketVergiNo" maxlength="40">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Telefon</label>
+                                        <input type="text" class="form-control" id="ayrSirketTelefon" maxlength="40">
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <label class="form-label">Adres</label>
+                                    <textarea class="form-control" id="ayrSirketAdres" rows="2" maxlength="300"></textarea>
+                                </div>
                             </div>
-                            <div class="col-6">
-                                <label class="form-label">Telefon</label>
-                                <input type="text" class="form-control" id="ayrSirketTelefon" maxlength="40">
+                            <div class="col-lg-5 ayarlar-modal-sag p-3 p-md-4">
+                                <h6 class="fw-bold mb-2"><i class="fa-solid fa-database me-1 text-primary"></i>Yedekleme</h6>
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="ayarYedekAl()"><i class="fa-solid fa-database me-1"></i>Şimdi Yedek Al</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="ayarYedekListele()"><i class="fa-solid fa-rotate-right me-1"></i>Listeyi Yenile</button>
+                                </div>
+                                <div class="ayarlar-yedek-kutu border rounded bg-light p-2">
+                                    <div id="ayrYedekListe" class="small text-muted">Yedekler yükleniyor…</div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="mt-2">
-                            <label class="form-label">Adres</label>
-                            <textarea class="form-control" id="ayrSirketAdres" rows="2" maxlength="300"></textarea>
-                        </div>
-                        <hr>
-                        <h6 class="fw-bold mb-2">Yedekleme</h6>
-                        <div class="d-flex gap-2 mb-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="ayarYedekAl()"><i class="fa-solid fa-database me-1"></i>Şimdi Yedek Al</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="ayarYedekListele()"><i class="fa-solid fa-rotate-right me-1"></i>Listeyi Yenile</button>
-                        </div>
-                        <div class="border rounded bg-light p-2" style="max-height:170px;overflow:auto;">
-                            <div id="ayrYedekListe" class="small text-muted">Yedekler yükleniyor…</div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -3200,10 +3205,10 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/utils.js?v=1.0.53"></script>
-    <script src="js/navigation.js?v=1.0.53"></script>
+    <script src="js/utils.js?v=1.0.55"></script>
+    <script src="js/navigation.js?v=1.0.55"></script>
     <script src="js/tanimlamalar.js?v=5"></script>
     <script src="js/recete.js?v=17"></script>
-    <script src="app.js?v=1.0.53"></script>
+    <script src="app.js?v=1.0.55"></script>
 </body>
 </html>

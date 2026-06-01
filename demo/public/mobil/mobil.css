@@ -11,6 +11,7 @@
   --nav-h: 58px;
   --header-h: 52px;
   --safe-b: env(safe-area-inset-bottom, 0px);
+  --mobil-kaydet-bar-h: 9.5rem;
 }
 
 * { box-sizing: border-box; }
@@ -67,6 +68,24 @@ body { overflow: hidden; }
   font-size: 0.88rem;
   text-align: center;
 }
+.login-baglanti {
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 10px 8px;
+  background: #fafafa;
+}
+.login-baglanti summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 10px 0;
+  list-style: none;
+}
+.login-baglanti summary::-webkit-details-marker { display: none; }
+.login-baglanti[open] summary { margin-bottom: 4px; }
+.login-baglanti .field-label:first-of-type { margin-top: 4px; }
 
 /* Uygulama */
 #view-app { background: var(--bg); }
@@ -109,6 +128,27 @@ body { overflow: hidden; }
   background: #ffebee;
   color: #b71c1c;
   border-bottom-color: #ef5350;
+}
+
+.isletme-ozet-bar {
+  flex-shrink: 0;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+}
+.isletme-ozet-metin {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--text);
+}
+.isletme-ozet-metin strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--primary-dark);
+  margin-bottom: 2px;
+}
+.isletme-ozet-satir {
+  color: var(--muted);
 }
 
 .kasa-ozet-bar {
@@ -549,6 +589,228 @@ body { overflow: hidden; }
   font-weight: 600;
 }
 
+.detay-aksiyon { margin-bottom: 12px; }
+.detay-aksiyon-cift {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-aciklama {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+.mobil-recete-mus-baslik {
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: var(--primary-dark);
+}
+.mobil-recete-sonuc {
+  margin-top: 14px;
+}
+.mobil-recete-ozet {
+  background: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  margin-bottom: 10px;
+}
+.mobil-recete-ozet-uyari {
+  background: #fff8e1;
+  border-color: #ffe082;
+}
+.mobil-recete-ozet-hata {
+  background: #ffebee;
+  border-color: #ef9a9a;
+  color: var(--danger);
+}
+.mobil-recete-kalem {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.mobil-recete-kalem-ust {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f5f5f5;
+}
+.mobil-recete-kalem-ad {
+  font-weight: 600;
+  font-size: 0.92rem;
+  flex: 1;
+  min-width: 0;
+}
+.mobil-recete-kalem-not {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.mobil-recete-kalem-tutar {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--success);
+  white-space: nowrap;
+}
+.mobil-recete-kalem-govde {
+  padding: 8px 10px 10px;
+  font-size: 0.82rem;
+}
+.mobil-recete-secim {
+  margin-bottom: 8px;
+}
+.mobil-recete-secim label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 12px;
+  font-size: 0.82rem;
+}
+.mobil-recete-plan-tablo {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.mobil-recete-plan-tablo th,
+.mobil-recete-plan-tablo td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #eee;
+}
+.mobil-recete-plan-tablo th {
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+.mobil-recete-plan-tablo .sayi { text-align: right; white-space: nowrap; }
+.mobil-recete-plan-tablo .stok-uyari { color: var(--danger); font-weight: 600; }
+.mobil-recete-fire {
+  font-size: 0.75rem;
+  color: #e65100;
+  margin-top: 4px;
+}
+.mobil-recete-genel-toplam {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--primary-dark);
+  color: #fff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  font-weight: 600;
+}
+.mobil-recete-genel-toplam span:last-child {
+  font-size: 1.1rem;
+}
+
+.mobil-recete-kayit-liste .kart-item.kart-recete-aktif {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.25);
+}
+.mobil-recete-kayit-rozet {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-top: 4px;
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.mobil-recete-kayit-baslik {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.88rem;
+}
+.mobil-recete-kayit-baslik h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: var(--primary-dark);
+}
+.mobil-recete-kayit-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.mobil-recete-satis-rozet {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #e3f2fd;
+  color: #1565c0;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.mobil-recete-yeni-modu .mobil-recete-sonuc {
+  padding-bottom: 8px;
+}
+
+/* Sabit kaydet çubuğu — genel toplam + kaydet */
+.mobil-recete-kaydet-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--nav-h) + var(--safe-b));
+  z-index: 95;
+  padding: 10px 12px calc(10px + var(--safe-b));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
+}
+.mobil-recete-kaydet-bar[hidden] {
+  display: none !important;
+}
+.mobil-recete-kaydet-toplam {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--primary-dark);
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.mobil-recete-kaydet-toplam-etiket {
+  font-size: 0.9rem;
+}
+.mobil-recete-kaydet-toplam-deger {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.mobil-recete-kaydet-bar .btn {
+  font-size: 1.05rem;
+  padding: 14px 18px;
+  margin: 0;
+}
+#view-app.alt-panel-acik .mobil-recete-kaydet-bar {
+  bottom: 0;
+  padding-bottom: calc(10px + var(--safe-b));
+}
+/* Kaydırılabilir panel: sabit alt çubuk kadar boşluk (main-panels değil, .panel kayar) */
+#view-app.recete-kaydet-acik #panel-musteri-recete {
+  padding-bottom: calc(var(--mobil-kaydet-bar-h) + 20px);
+}
+#view-app.recete-kaydet-acik .mobil-recete-sonuc {
+  margin-bottom: 4px;
+}
+
+.bottom-nav[hidden] {
+  display: none !important;
+}
 .bottom-nav {
   position: fixed;
   left: 0;
@@ -559,11 +821,13 @@ body { overflow: hidden; }
   display: flex;
   background: var(--surface);
   border-top: 1px solid var(--border);
+  z-index: 80;
   box-shadow: 0 -4px 16px rgba(0,0,0,.06);
   z-index: 50;
 }
 .nav-btn {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -579,6 +843,80 @@ body { overflow: hidden; }
 .nav-btn.nav-active { color: var(--primary); font-weight: 600; }
 .nav-icon { font-size: 1.25rem; }
 
+.stok-aksiyon-cift {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.stok-ipucu {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0 0 10px;
+  line-height: 1.35;
+}
+.form-iki-kolon {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.form-iki-kolon-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.dialog-uyari {
+  background: #e3f2fd;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.malzeme-bolum-baslik {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 14px 0 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--primary-dark);
+}
+.btn-text-danger { color: var(--danger); }
+.chk-dozaj {
+  margin: 10px 0;
+  width: 100%;
+}
+.malzeme-ambalaj-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.malzeme-ambalaj-kart {
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.malzeme-ambalaj-kart-ust {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.malzeme-dozaj-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.malzeme-dozaj-satir {
+  display: grid;
+  grid-template-columns: 1fr 5.5rem 4.5rem;
+  gap: 6px;
+  align-items: center;
+}
+.malzeme-dozaj-ad {
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
 .mobil-dialog {
   border: none;
   border-radius: 16px 16px 0 0;
@@ -587,6 +925,20 @@ body { overflow: hidden; }
   width: 100%;
   margin: auto 0 0;
   max-height: 90vh;
+}
+.mobil-dialog-scroll .dialog-body {
+  max-height: min(85vh, 720px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.mobil-dialog-tall {
+  max-height: 92vh;
+}
+.mobil-dialog-tall .dialog-body {
+  max-height: 88vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(24px + var(--safe-b));
 }
 .mobil-dialog::backdrop { background: rgba(0,0,0,.45); }
 .dialog-body { padding: 20px 18px 24px; }
