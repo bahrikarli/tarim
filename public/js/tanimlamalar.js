@@ -194,15 +194,15 @@ function malzemeAmbalajSatirHtml(a, rowKey) {
   const kritik = malzemeEsikDeger(a, 'KritikEsik', 5);
   const hedef = malzemeEsikDeger(a, 'HedefEsik', 20);
   return `<tr data-row-key="${rowKey}" data-stok-id="${stokID}">
-    <td><input type="number" step="0.001" min="0.001" class="form-control form-control-sm malz-amb-miktar" value="${amb === '' ? '' : amb}" placeholder="5"></td>
-    <td><select class="form-select form-select-sm malz-amb-olcu">${stokBirimSelectOptionsHtml(olcu)}</select></td>
-    <td><input type="text" class="form-control form-control-sm malz-amb-barkod" value="${String(a?.Barkod || '').replace(/"/g, '&quot;')}" maxlength="50"></td>
-    <td><input type="number" step="0.01" min="0" class="form-control form-control-sm malz-amb-alis" value="${Number(a?.AlisFiyati || 0)}"></td>
-    <td><input type="number" step="0.01" min="0" class="form-control form-control-sm malz-amb-satis" value="${Number(a?.SatisFiyati || 0)}"></td>
-    <td><input type="number" min="0" step="1" class="form-control form-control-sm malz-amb-kritik" value="${kritik}" title="Tehlikeli stok alt sınırı (adet)"></td>
-    <td><input type="number" min="0" step="1" class="form-control form-control-sm malz-amb-hedef" value="${hedef}" title="Yeterli stok üst sınırı (adet)"></td>
-    <td><input type="number" min="0" step="1" class="form-control form-control-sm malz-amb-stok" value="${parseInt(a?.MevcutMiktar, 10) || 0}"></td>
-    <td class="text-center">
+    <td class="malz-col-boyut"><input type="number" step="0.001" min="0.001" class="form-control form-control-sm malz-amb-miktar" value="${amb === '' ? '' : amb}" placeholder="5"></td>
+    <td class="malz-col-birim"><select class="form-select form-select-sm malz-amb-olcu">${stokBirimSelectOptionsHtml(olcu)}</select></td>
+    <td class="malz-col-barkod"><input type="text" class="form-control form-control-sm malz-amb-barkod" value="${String(a?.Barkod || '').replace(/"/g, '&quot;')}" maxlength="50" placeholder="Barkod"></td>
+    <td class="malz-col-fiyat"><input type="number" step="0.01" min="0" class="form-control form-control-sm malz-amb-alis" value="${Number(a?.AlisFiyati || 0)}"></td>
+    <td class="malz-col-fiyat"><input type="number" step="0.01" min="0" class="form-control form-control-sm malz-amb-satis" value="${Number(a?.SatisFiyati || 0)}"></td>
+    <td class="malz-col-esik"><input type="number" min="0" step="1" class="form-control form-control-sm malz-amb-kritik" value="${kritik}" title="Tehlikeli stok alt sınırı (adet)"></td>
+    <td class="malz-col-esik"><input type="number" min="0" step="1" class="form-control form-control-sm malz-amb-hedef" value="${hedef}" title="Yeterli stok üst sınırı (adet)"></td>
+    <td class="malz-col-stok"><input type="number" min="0" step="1" class="form-control form-control-sm malz-amb-stok" value="${parseInt(a?.MevcutMiktar, 10) || 0}"></td>
+    <td class="malz-col-sil text-center">
       <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="malzemeAmbalajSatirSil('${rowKey}')" title="Satırı kaldır"><i class="fa-solid fa-xmark"></i></button>
     </td>
   </tr>`;
@@ -492,7 +492,7 @@ function malzemeDozajTabloHtml(gid) {
   }
   return `<p class="small text-muted mb-2">Örn. “Arpa ekiminde bu malzemeden dekar başına 1 Lt” — 5 Lt veya 10 Lt bidon aynı dozajı kullanır.</p>
     <table class="table table-sm table-bordered mb-0"><thead class="table-light">
-    <tr><th>Tarım ürünü (ekin)</th><th style="width:120px">Miktar / dekar</th><th style="width:100px">Birim</th></tr></thead><tbody>
+    <tr><th>Tarım ürünü (ekin)</th><th style="width:7.5rem">Miktar / dekar</th><th class="malz-col-birim">Birim</th></tr></thead><tbody>
     ${tarimUrunCache.filter((u) => u.Aktif !== false && u.Aktif !== 0).map((u) => {
       const d = dozajMap[u.TarimUrunID];
       const miktar = d ? Number(d.MiktarDekar) : '';
@@ -500,7 +500,7 @@ function malzemeDozajTabloHtml(gid) {
       return `<tr><td>${gunlukMetinEsc(u.UrunAdi)}</td>
         <td><input type="number" step="0.0001" min="0" class="form-control form-control-sm malz-dozaj-miktar"
           data-gid="${gid}" data-urun-id="${u.TarimUrunID}" value="${miktar === '' ? '' : miktar}"></td>
-        <td><select class="form-select form-select-sm malz-dozaj-birim" data-gid="${gid}" data-urun-id="${u.TarimUrunID}">${stokBirimSelectOptionsHtml(birim)}</select></td></tr>`;
+        <td class="malz-col-birim"><select class="form-select form-select-sm malz-dozaj-birim" data-gid="${gid}" data-urun-id="${u.TarimUrunID}">${stokBirimSelectOptionsHtml(birim)}</select></td></tr>`;
     }).join('')}
     </tbody></table>`;
 }

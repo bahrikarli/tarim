@@ -441,10 +441,34 @@ function stokListeFiltrele(q) {
     } else tekil.push(urun);
   }
 
-  const stokSatirHtml = (urun, girintili) => `
-      <tr class="${girintili ? 'stok-grup-alt-satir' : ''}">
+  const cokAmbalajGruplar = [];
+  const tekilSatirlar = [];
+
+  for (const [, grup] of gruplar) {
+    const items = grup.items.sort((a, b) => Number(b.AmbalajMiktari || 0) - Number(a.AmbalajMiktari || 0));
+    if (items.length > 1) cokAmbalajGruplar.push({ ...grup, items });
+    else tekilSatirlar.push(...items);
+  }
+  tekilSatirlar.push(...tekil);
+  cokAmbalajGruplar.sort((a, b) => String(a.ad).localeCompare(String(b.ad), 'tr', { sensitivity: 'base' }));
+  tekilSatirlar.sort((a, b) => String(a.UrunAdi).localeCompare(String(b.UrunAdi), 'tr', { sensitivity: 'base' }));
+
+  const stokSatirHtml = (urun, opts = {}) => {
+    const girintili = !!opts.girintili;
+    const sonGrup = !!opts.sonGrup;
+    const siniflar = [
+      girintili ? 'stok-grup-alt-satir' : 'stok-tekil-satir',
+      sonGrup ? 'stok-grup-son' : '',
+    ].filter(Boolean).join(' ');
+    const ambEtiket = urun.AmbalajMiktari
+      ? `<span class="stok-ambalaj-etiket">${Number(urun.AmbalajMiktari)} ${urun.OlcuBirimi || 'Lt'}</span>`
+      : '';
+    const urunHucre = girintili
+      ? `<span class="text-muted me-1">↳</span>${ambEtiket}<span class="ms-1">${gunlukMetinEsc(urun.UrunAdi)}</span>`
+      : `${gunlukMetinEsc(urun.UrunAdi)}${urun.AmbalajMiktari ? ` <span class="badge bg-success-subtle text-success border">${Number(urun.AmbalajMiktari)} ${urun.OlcuBirimi || 'Lt'}</span>` : ''}`;
+    return `<tr class="${siniflar}">
         <td class="text-muted" style="font-size:0.8rem;">${urun.Barkod || '-'}</td>
-        <td class="fw-semibold ${girintili ? 'ps-4' : ''}">${girintili ? '↳ ' : ''}${gunlukMetinEsc(urun.UrunAdi)}${urun.AmbalajMiktari ? ` <span class="badge bg-success-subtle text-success border">${Number(urun.AmbalajMiktari)} ${urun.OlcuBirimi || 'Lt'}</span>` : ''}</td>
+        <td class="fw-semibold ${girintili ? 'ps-3' : ''}">${urunHucre}</td>
         <td class="text-muted">${urun.Kategori || '-'}</td>
         <td class="text-end">${urun.AlisFiyati ? Number(urun.AlisFiyati).toFixed(2) + ' ₺' : '-'}</td>
         <td class="text-end fw-semibold text-success">${Number(urun.SatisFiyati || 0).toFixed(2)} ₺</td>
@@ -454,23 +478,54 @@ function stokListeFiltrele(q) {
           <button type="button" class="btn btn-sm btn-light border ms-1" onclick="stokSil(${urun.StokID})" title="Sil"><i class="fa-solid fa-trash text-danger"></i></button>
         </td>
       </tr>`;
+  };
 
   const htmlParcalari = [];
-  for (const [, grup] of gruplar) {
-    const items = grup.items.sort((a, b) => Number(b.AmbalajMiktari || 0) - Number(a.AmbalajMiktari || 0));
-    if (items.length > 1) {
+  const grupAciklama = document.getElementById('stokListeGrupAciklama');
+  if (grupAciklama) grupAciklama.classList.toggle('d-none', cokAmbalajGruplar.length === 0);
+
+  if (cokAmbalajGruplar.length) {
+    htmlParcalari.push(`<tr class="stok-bolum-baslik"><td colspan="7">
+      <i class="fa-solid fa-layer-group me-1"></i>Çok ambalajlı malzemeler
+      <span class="fw-normal text-muted ms-1">(${cokAmbalajGruplar.length} grup)</span></td></tr>`);
+    for (const grup of cokAmbalajGruplar) {
+      const items = grup.items;
       const toplamAdet = items.reduce((s, u) => s + Number(u.MevcutMiktar || 0), 0);
-      htmlParcalari.push(`<tr class="table-success bg-opacity-10">
-        <td colspan="7" class="py-2"><i class="fa-solid fa-flask me-2 text-success"></i><strong>${gunlukMetinEsc(grup.ad)}</strong>
-          <span class="badge bg-success ms-2">${items.length} ambalaj</span>
-          <span class="small text-muted ms-2">toplam ${toplamAdet} adet stok</span></td></tr>`);
-      items.forEach((u) => { htmlParcalari.push(stokSatirHtml(u, true)); });
-    } else {
-      items.forEach((u) => { htmlParcalari.push(stokSatirHtml(u, false)); });
+      const gid = Number(items[0]?.MalzemeGrupID || 0);
+      const duzenleBtn = gid > 0
+        ? `<button type="button" class="btn btn-sm btn-outline-success ms-auto" onclick="stokMalzemeGrubuDuzenle(${gid})" title="Tüm ambalajları birlikte düzenle"><i class="fa-solid fa-pen me-1"></i>Grubu düzenle</button>`
+        : '';
+      htmlParcalari.push(`<tr class="stok-grup-baslik"><td colspan="7">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <i class="fa-solid fa-flask text-success fa-lg"></i>
+          <strong class="fs-6">${gunlukMetinEsc(grup.ad)}</strong>
+          <span class="badge bg-success">${items.length} ambalaj</span>
+          <span class="small text-muted">toplam ${toplamAdet} adet stok</span>
+          ${duzenleBtn}
+        </div></td></tr>`);
+      items.forEach((u, i) => {
+        htmlParcalari.push(stokSatirHtml(u, { girintili: true, sonGrup: i === items.length - 1 }));
+      });
+      htmlParcalari.push('<tr class="stok-grup-ayrac"><td colspan="7"></td></tr>');
     }
   }
-  tekil.forEach((u) => { htmlParcalari.push(stokSatirHtml(u, false)); });
+
+  if (tekilSatirlar.length) {
+    if (cokAmbalajGruplar.length) {
+      htmlParcalari.push(`<tr class="stok-bolum-baslik"><td colspan="7">
+        <i class="fa-solid fa-box me-1"></i>Tek ambalaj / genel stok
+        <span class="fw-normal text-muted ms-1">(${tekilSatirlar.length} kalem)</span></td></tr>`);
+    }
+    tekilSatirlar.forEach((u) => { htmlParcalari.push(stokSatirHtml(u, {})); });
+  }
+
   tb.innerHTML = htmlParcalari.join('');
+}
+
+async function stokMalzemeGrubuDuzenle(grupID) {
+  if (typeof malzemeDuzenleModalAc !== 'function') return;
+  await stokListeModalGeciciKapat();
+  await malzemeDuzenleModalAc(grupID);
 }
 
 let stokListeModalGeriAc = false;
@@ -5508,20 +5563,31 @@ document.getElementById('teklifModal')?.addEventListener('hidden.bs.modal', () =
   musteriDetayModalGeriAcPlanla();
 });
 
+function stokListeModalGeriAcPlanla() {
+  if (!stokListeModalGeriAc) return;
+  stokListeModalGeriAc = false;
+  setTimeout(() => {
+    modalArtigiTemizle();
+    const listeEl = document.getElementById('stokListeModal');
+    if (listeEl) modalAc(listeEl);
+  }, 100);
+}
+
 document.getElementById('stokEkleModal')?.addEventListener('hidden.bs.modal', () => {
   if (tedAlimStokEkleDonus) {
     tedAlimStokEkleDonusYap();
     return;
   }
   if (stokListeModalGeriAc) {
-    stokListeModalGeriAc = false;
-    setTimeout(() => {
-      modalArtigiTemizle();
-      const listeEl = document.getElementById('stokListeModal');
-      if (listeEl) modalAc(listeEl);
-    }, 100);
+    stokListeModalGeriAcPlanla();
   } else {
     modalArtigiTemizle();
+  }
+});
+
+document.getElementById('malzemeDuzenleModal')?.addEventListener('hidden.bs.modal', () => {
+  if (stokListeModalGeriAc) {
+    stokListeModalGeriAcPlanla();
   }
 });
 

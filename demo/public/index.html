@@ -401,6 +401,89 @@
             overflow-y: auto;
         }
         .malzeme-dozaj-scroll .table { font-size: 0.85rem; margin-bottom: 0; }
+        #malzemeDuzenleModal .malzeme-ambalaj-wrap {
+            overflow-x: auto;
+        }
+        .malzeme-ambalaj-tablo {
+            table-layout: fixed;
+            width: 100%;
+            min-width: 52rem;
+        }
+        .malzeme-ambalaj-tablo th.malz-col-boyut,
+        .malzeme-ambalaj-tablo td.malz-col-boyut { width: 4.25rem; }
+        .malzeme-ambalaj-tablo th.malz-col-birim,
+        .malzeme-ambalaj-tablo td.malz-col-birim { width: 8.5rem; }
+        .malzeme-ambalaj-tablo th.malz-col-barkod,
+        .malzeme-ambalaj-tablo td.malz-col-barkod { width: 11rem; }
+        .malzeme-ambalaj-tablo th.malz-col-fiyat,
+        .malzeme-ambalaj-tablo td.malz-col-fiyat { width: 5.75rem; }
+        .malzeme-ambalaj-tablo th.malz-col-esik,
+        .malzeme-ambalaj-tablo td.malz-col-esik { width: 4.5rem; }
+        .malzeme-ambalaj-tablo th.malz-col-stok,
+        .malzeme-ambalaj-tablo td.malz-col-stok { width: 4.5rem; }
+        .malzeme-ambalaj-tablo th.malz-col-sil,
+        .malzeme-ambalaj-tablo td.malz-col-sil { width: 2.25rem; }
+        .malzeme-ambalaj-tablo .form-control-sm,
+        .malzeme-ambalaj-tablo .form-select-sm {
+            width: 100%;
+            min-width: 0;
+            font-size: 0.8125rem;
+            padding-left: 0.35rem;
+            padding-right: 0.35rem;
+        }
+        .malzeme-ambalaj-tablo .malz-amb-olcu { padding-right: 1.5rem; }
+        .stok-liste-tablo tr.stok-bolum-baslik td {
+            background: #f1f3f5;
+            color: #495057;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-top: 2px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            padding: 0.45rem 0.75rem;
+        }
+        .stok-liste-tablo tr.stok-grup-baslik td {
+            background: linear-gradient(90deg, #e8f5e9 0%, #f4fbf4 100%);
+            border-left: 4px solid #2e7d32;
+            border-top: 1px solid #c8e6c9;
+            border-bottom: 1px solid #c8e6c9;
+            padding: 0.55rem 0.75rem;
+        }
+        .stok-liste-tablo tr.stok-grup-alt-satir td {
+            background: #f8fcf8;
+            border-left: 4px solid #a5d6a7;
+        }
+        .stok-liste-tablo tr.stok-grup-alt-satir.stok-grup-son td {
+            border-bottom: 2px solid #c8e6c9;
+        }
+        .stok-liste-tablo tr.stok-grup-ayrac td {
+            height: 0.65rem;
+            padding: 0;
+            background: #fff;
+            border: none;
+            line-height: 0;
+        }
+        .stok-liste-tablo tr.stok-tekil-satir td { background: #fff; }
+        .stok-liste-tablo tr.stok-grup-alt-satir .stok-ambalaj-etiket {
+            display: inline-block;
+            font-size: 0.7rem;
+            color: #2e7d32;
+            font-weight: 600;
+            min-width: 3.5rem;
+        }
+        .malzeme-dozaj-scroll th.malz-col-birim,
+        .malzeme-dozaj-scroll td.malz-col-birim {
+            min-width: 10rem;
+            width: 10rem;
+        }
+        .malzeme-dozaj-scroll .malz-dozaj-birim {
+            min-width: 9rem;
+            width: 100%;
+            font-size: 0.8125rem;
+            padding-left: 0.4rem;
+            padding-right: 1.6rem;
+        }
         @media (max-width: 991.98px) {
             .malzeme-dozaj-panel { min-height: 0; margin-top: 0.5rem; }
             .malzeme-dozaj-scroll { max-height: none; }
@@ -1057,7 +1140,7 @@
         </div>
 
         <div class="modal fade" id="malzemeDuzenleModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width:min(1200px,96vw);">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width:min(1420px,98vw);">
                 <div class="modal-content border-0 shadow">
                     <div class="modal-header text-white py-2" style="background: linear-gradient(90deg, #1b5e20, #43a047);">
                         <h5 class="modal-title mb-0" id="malzemeDuzenleBaslik"><i class="fa-solid fa-flask me-2"></i>Malzeme</h5>
@@ -1066,7 +1149,7 @@
                     <div class="modal-body">
                         <input type="hidden" id="malzemeDuzenleGrupID" value="">
                         <div class="row g-3 align-items-start">
-                            <div class="col-lg-7">
+                            <div class="col-lg-8">
                                 <label class="form-label fw-semibold" for="malzemeDuzenleAd">Ürün / malzeme adı</label>
                                 <input type="text" class="form-control form-control-lg mb-1" id="malzemeDuzenleAd" maxlength="150" placeholder="Örn. Taban gübresi, Roundup…">
                                 <p class="small text-muted mb-3">Üst başlık; her ambalaj soldaki tabloda ayrı fiyat ve stokla kayıtlıdır.</p>
@@ -1076,26 +1159,26 @@
                                     <button type="button" class="btn btn-sm btn-outline-success" onclick="malzemeAmbalajSatirEkle()"><i class="fa-solid fa-plus me-1"></i>Ambalaj ekle</button>
                                 </div>
                                 <p class="small text-muted mb-2">Boyut, barkod, alış, satış, stok ve uyarı eşikleri — her ambalaj satırı ayrı stok kartıdır.</p>
-                                <div class="table-responsive">
+                                <div class="table-responsive malzeme-ambalaj-wrap">
                                     <table class="table table-sm table-bordered align-middle mb-0 malzeme-ambalaj-tablo">
                                         <thead class="table-light">
                                             <tr>
-                                                <th style="width:72px">Boyut</th>
-                                                <th style="width:58px">Birim</th>
-                                                <th>Barkod</th>
-                                                <th style="width:76px">Alış ₺</th>
-                                                <th style="width:76px">Satış ₺</th>
-                                                <th style="width:64px" title="Bu adedin altı kırmızı">Kritik</th>
-                                                <th style="width:64px" title="Bu adedin üstü yeşil">Hedef</th>
-                                                <th style="width:64px">Stok</th>
-                                                <th style="width:40px"></th>
+                                                <th class="malz-col-boyut">Boyut</th>
+                                                <th class="malz-col-birim">Birim</th>
+                                                <th class="malz-col-barkod">Barkod</th>
+                                                <th class="malz-col-fiyat">Alış ₺</th>
+                                                <th class="malz-col-fiyat">Satış ₺</th>
+                                                <th class="malz-col-esik" title="Bu adedin altı kırmızı">Kritik</th>
+                                                <th class="malz-col-esik" title="Bu adedin üstü yeşil">Hedef</th>
+                                                <th class="malz-col-stok">Stok</th>
+                                                <th class="malz-col-sil"></th>
                                             </tr>
                                         </thead>
                                         <tbody id="malzemeAmbalajGovde"></tbody>
                                     </table>
                                 </div>
                             </div>
-                            <div class="col-lg-5">
+                            <div class="col-lg-4">
                                 <div class="form-check form-switch mb-2">
                                     <input class="form-check-input" type="checkbox" id="malzemeDozajGerekli" checked onchange="malzemeDozajPanelGuncelle()">
                                     <label class="form-check-label fw-semibold" for="malzemeDozajGerekli">Dozaj gerekli</label>
@@ -1148,8 +1231,9 @@
                         </div>
                         <p class="small text-muted mb-1" id="stokListeToplamMetin">Toplam <strong class="text-dark">0</strong> ürün bulunmaktadır.</p>
                         <p class="small text-muted mb-2">Gübre ve ilaçların tamamı <strong>Yeni malzeme</strong> ile eklenmeli; tek ambalajlı sarf için <strong>Genel stok</strong> yeterli.</p>
+                        <p class="small text-success mb-2 d-none" id="stokListeGrupAciklama"><i class="fa-solid fa-layer-group me-1"></i>Yeşil kutular <strong>çok ambalajlı malzeme</strong> grubudur; altındaki satırlar her ambalaj boyutudur.</p>
                         <div class="table-responsive">
-                            <table class="table table-hover table-sm align-middle mb-0" style="font-size:0.85rem;">
+                            <table class="table table-hover table-sm align-middle mb-0 stok-liste-tablo" style="font-size:0.85rem;">
                                 <thead>
                                     <tr class="table-light">
                                         <th class="text-muted fw-semibold">Barkod</th>
@@ -3298,10 +3382,10 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/utils.js?v=1.0.57"></script>
-    <script src="js/navigation.js?v=1.0.57"></script>
+    <script src="js/utils.js?v=1.0.59"></script>
+    <script src="js/navigation.js?v=1.0.59"></script>
     <script src="js/tanimlamalar.js?v=5"></script>
     <script src="js/recete.js?v=17"></script>
-    <script src="app.js?v=1.0.57"></script>
+    <script src="app.js?v=1.0.59"></script>
 </body>
 </html>
