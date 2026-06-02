@@ -1246,7 +1246,9 @@ async function musteriIadeUrunleriYukle() {
   sel.innerHTML = '<option value="">— Ürün seçin —</option>';
   musteriIadeUrunCache.forEach((u) => {
     const key = String(u.Key || `stok:${u.StokID}`);
-    sel.innerHTML += `<option value="${key}">${u.UrunAdi} (Kalan: ${u.KalanMiktar})</option>`;
+    const boyut = stokBoyutMetni(u);
+    const boyutParca = boyut ? ` · ${boyut}` : '';
+    sel.innerHTML += `<option value="${key}">${gunlukMetinEsc(u.UrunAdi)}${boyutParca} (Kalan: ${u.KalanMiktar})</option>`;
   });
   sel.onchange = musteriIadeUrunSecimiDegisti;
   musteriIadeUrunSecimiDegisti();
@@ -1598,12 +1600,7 @@ function musteriSatisAraGuncelle(deger) {
     item.className =
       'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 border-0 border-bottom';
     const fiyat = Number(urun.SatisFiyati || 0).toFixed(2);
-    item.innerHTML = `
-      <div class="text-start pe-2">
-        <span class="fw-semibold text-dark d-block">${gunlukMetinEsc(urun.UrunAdi)}</span>
-        <small class="text-muted">Stok: ${urun.MevcutMiktar} ${urun.Birim || 'Adet'}</small>
-      </div>
-      <span class="badge rounded-pill bg-primary">${fiyat} ₺</span>`;
+    item.innerHTML = stokAramaListeItemHtml(urun, `<span class="badge rounded-pill bg-primary">${fiyat} ₺</span>`);
     item.onclick = (e) => {
       e.preventDefault();
       musteriSatisListedenSepete(urun);
@@ -1714,8 +1711,13 @@ function musteriSatisSepetCiz() {
     tb.innerHTML = musteriSatisSepet
       .map((s) => {
         const satirTutar = Number(s.miktar) * Number(s.fiyat);
+        const stokSatir = musteriSatisSepetStokBul(s.urunID);
+        const boyutLbl = s.boyutEtiket || (stokSatir ? stokBoyutMetni(stokSatir) : '');
+        const boyutNot = boyutLbl
+          ? `<br><span class="text-muted" style="font-size:0.75rem">${gunlukMetinEsc(boyutLbl)}</span>`
+          : '';
         return `<tr>
-        <td class="small">${gunlukMetinEsc(s.urunAdi)}</td>
+        <td class="small">${gunlukMetinEsc(s.urunAdi)}${boyutNot}</td>
         <td class="text-center" style="width:72px">
           <input type="number" min="1" step="1" class="form-control form-control-sm text-center mx-auto"
             style="max-width:64px" value="${s.miktar}"
@@ -1801,6 +1803,7 @@ function musteriSatisSepeteEkle(urunIDArg, miktarEkle) {
     musteriSatisSepet.push({
       urunID,
       urunAdi: stok.UrunAdi,
+      boyutEtiket: stokBoyutMetni(stok),
       fiyat: birimFiyat,
       miktar: ekle,
     });
@@ -4239,17 +4242,18 @@ function sepetiYenidenCiz() {
     const tr = document.createElement('tr');
     tr.setAttribute('data-sepet-satir', String(s.satirId));
     const tutar = (s.miktar * s.birimFiyat).toFixed(2);
+    const boyutNot = s.boyutEtiket ? ` · ${s.boyutEtiket}` : '';
     tr.innerHTML = `
       <td>
-        <div class="fw-semibold text-dark">${s.urunAdi}</div>
-        <small class="text-muted d-xl-none d-md-none">${s.birim} · stok ${s.mevcutStok}</small>
+        <div class="fw-semibold text-dark">${gunlukMetinEsc(s.urunAdi)}</div>
+        <small class="text-muted d-xl-none d-md-none">${s.birim}${boyutNot} · stok ${s.mevcutStok}</small>
         <div class="d-md-none mt-1">
           <label class="small text-muted me-1">Birim fiyat</label>
           <input type="number" step="0.01" min="0" class="form-control form-control-sm d-inline-block"
                  style="max-width: 96px;" value="${s.birimFiyat.toFixed(2)}"
                  data-sepet-fiyat="${s.satirId}">
         </div>
-        <small class="text-muted d-none d-xl-inline">Rafta: ${s.mevcutStok} ${s.birim}</small>
+        <small class="text-muted d-none d-xl-inline">${s.boyutEtiket ? gunlukMetinEsc(s.boyutEtiket) + ' · ' : ''}Rafta: ${s.mevcutStok} ${s.birim}</small>
       </td>
       <td class="text-center text-muted d-none d-xl-table-cell">${s.birim}</td>
       <td class="text-end d-none d-md-table-cell">
@@ -4337,12 +4341,14 @@ function sepeteUrunEkle(urun) {
     mevcut.miktar += miktarEkle;
     mevcut.mevcutStok = mevcutStok;
     mevcut.birimFiyat = birimFiyat;
+    if (!mevcut.boyutEtiket) mevcut.boyutEtiket = stokBoyutMetni(urun);
   } else {
     hizliSatisSatirSayac += 1;
     hizliSatisSepet.push({
       satirId: hizliSatisSatirSayac,
       stokID: urun.StokID,
       urunAdi: urun.UrunAdi,
+      boyutEtiket: stokBoyutMetni(urun),
       birim: urun.Birim || 'Adet',
       birimFiyat,
       miktar: miktarEkle,
@@ -4474,12 +4480,7 @@ async function hizliSatisAra(kelime) {
         'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-3 border-0 border-bottom';
       item.style.fontSize = '0.95rem';
       const fiyat = Number(urun.SatisFiyati).toFixed(2);
-      item.innerHTML = `
-        <div class="text-start pe-2">
-          <span class="fw-semibold text-dark d-block">${urun.UrunAdi}</span>
-          <small class="text-muted">Stok: ${urun.MevcutMiktar} ${urun.Birim || 'Adet'}</small>
-        </div>
-        <span class="badge rounded-pill bg-primary">${fiyat} ₺</span>`;
+      item.innerHTML = stokAramaListeItemHtml(urun, `<span class="badge rounded-pill bg-primary">${fiyat} ₺</span>`);
       item.onclick = (e) => {
         e.preventDefault();
         sepeteUrunEkle(urun);
@@ -5717,7 +5718,11 @@ function teklifKalemToplamHesapla() {
 function teklifUrunBul(ad) {
   const q = String(ad || '').trim().toLocaleLowerCase('tr-TR');
   if (!q) return null;
-  return (teklifUrunCache || []).find((u) => String(u.UrunAdi || '').trim().toLocaleLowerCase('tr-TR') === q) || null;
+  return (teklifUrunCache || []).find((u) => {
+    const etiket = stokSatisEtiketMetni(u).toLocaleLowerCase('tr-TR');
+    if (etiket === q) return true;
+    return String(u.UrunAdi || '').trim().toLocaleLowerCase('tr-TR') === q;
+  }) || null;
 }
 
 function teklifKalemSatiriniUrunleDoldur(urunInputEl) {
@@ -5755,8 +5760,11 @@ async function teklifUrunleriHazirla() {
     teklifUrunCache = Array.isArray(stokListeCache) ? stokListeCache : [];
     const dl = document.getElementById('teklifUrunDatalist');
     if (!dl) return;
-    const adlar = [...new Set(teklifUrunCache.map((u) => String(u.UrunAdi || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
-    dl.innerHTML = adlar.map((ad) => `<option value="${gunlukMetinEsc(ad)}"></option>`).join('');
+    const etiketler = teklifUrunCache
+      .map((u) => stokSatisEtiketMetni(u))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, 'tr'));
+    dl.innerHTML = etiketler.map((ad) => `<option value="${gunlukMetinEsc(ad)}"></option>`).join('');
   } catch (e) {
     console.error(e);
   }

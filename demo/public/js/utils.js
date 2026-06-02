@@ -404,7 +404,40 @@ function stokMetinAramaEslesir(urun, kelime) {
   const q = raw.toLocaleLowerCase('tr-TR');
   if (String(urun?.UrunAdi || '').toLocaleLowerCase('tr-TR').includes(q)) return true;
   if (String(urun?.Kategori || '').toLocaleLowerCase('tr-TR').includes(q)) return true;
+  const boyut = stokBoyutMetni(urun);
+  if (boyut && boyut.toLocaleLowerCase('tr-TR').includes(q)) return true;
   return stokBarkodAramaEslesir(urun?.Barkod, raw);
+}
+
+/** Ambalaj boyutu (örn. 10 Lt); yoksa boş. */
+function stokBoyutMetni(urun) {
+  const amb = Number(urun?.AmbalajMiktari);
+  const olcu = String(urun?.OlcuBirimi || 'Lt').trim() || 'Lt';
+  if (Number.isFinite(amb) && amb > 0) return `${amb} ${olcu}`;
+  return '';
+}
+
+/** Satış arama listesinde alt satır: boyut + stok adedi. */
+function stokAramaAltSatirHtml(urun) {
+  const boyut = stokBoyutMetni(urun);
+  const stok = `${urun?.MevcutMiktar ?? 0} ${urun?.Birim || 'Adet'}`;
+  if (boyut) return `Boyut: ${boyut} · Stok: ${stok}`;
+  return `Stok: ${stok}`;
+}
+
+/** Teklif / datalist için benzersiz etiket. */
+function stokSatisEtiketMetni(urun) {
+  const ad = String(urun?.UrunAdi || '').trim();
+  const boyut = stokBoyutMetni(urun);
+  return boyut ? `${ad} — ${boyut}` : ad;
+}
+
+function stokAramaListeItemHtml(urun, fiyatBadgeHtml) {
+  return `<div class="text-start pe-2">
+      <span class="fw-semibold text-dark d-block">${gunlukMetinEsc(urun.UrunAdi)}</span>
+      <small class="text-muted">${stokAramaAltSatirHtml(urun)}</small>
+    </div>
+    ${fiyatBadgeHtml}`;
 }
 
 function buyukHarfGirisBaslat() {
