@@ -247,6 +247,19 @@
     return li;
   }
 
+  function stokBoyutMetni(u) {
+    const amb = Number(u?.AmbalajMiktari);
+    const olcu = String(u?.OlcuBirimi || 'Lt').trim() || 'Lt';
+    if (Number.isFinite(amb) && amb > 0) return `${amb} ${olcu}`;
+    return '';
+  }
+
+  function stokAramaAltSatir(u) {
+    const boyut = stokBoyutMetni(u);
+    const stok = `${u.MevcutMiktar ?? 0} ${u.Birim || 'Adet'}`;
+    return boyut ? `Boyut: ${boyut} · Stok: ${stok}` : `Stok: ${stok}`;
+  }
+
   function stokAraEsles(stok, q) {
     const raw = String(q || '').trim();
     if (!raw) return false;
@@ -255,6 +268,8 @@
     const barkod = String(stok.Barkod || '').trim();
     if (/^\d+$/.test(raw) && barkod === raw) return true;
     if (ad.includes(lower)) return true;
+    const boyut = stokBoyutMetni(stok);
+    if (boyut && boyut.toLocaleLowerCase('tr-TR').includes(lower)) return true;
     if (barkod && barkod.includes(raw)) return true;
     return String(stok.StokID) === raw;
   }
@@ -1003,6 +1018,7 @@
       sepet.push({
         stokID: id,
         urunAdi: urun.UrunAdi,
+        boyutEtiket: stokBoyutMetni(urun),
         miktar: 1,
         birimFiyat: bf,
         birim: urun.Birim || 'Adet',
@@ -1028,8 +1044,9 @@
         const li = document.createElement('li');
         li.className = 'sepet-satir';
         const satirTutar = Math.round(s.birimFiyat * s.miktar * 100) / 100;
+        const boyutKucuk = s.boyutEtiket ? `<span class="sepet-boyut">${esc(s.boyutEtiket)}</span>` : '';
         li.innerHTML = `
-          <span class="sepet-ad">${esc(s.urunAdi)}</span>
+          <span class="sepet-ad">${esc(s.urunAdi)}${boyutKucuk}</span>
           <div class="sepet-miktar-wrap">
             <button type="button" class="sepet-miktar-btn" data-az="${idx}">−</button>
             <span class="sepet-miktar">${s.miktar}</span>
@@ -1082,7 +1099,7 @@
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'arama-item';
-      btn.innerHTML = `<span><span>${esc(u.UrunAdi)}</span><span class="arama-item-alt">Stok: ${u.MevcutMiktar} ${esc(u.Birim || 'Adet')}</span></span><span class="arama-item-fiyat">${para(u.SatisFiyati)}</span>`;
+      btn.innerHTML = `<span><span>${esc(u.UrunAdi)}</span><span class="arama-item-alt">${esc(stokAramaAltSatir(u))}</span></span><span class="arama-item-fiyat">${para(u.SatisFiyati)}</span>`;
       btn.onclick = () => sepeteEkle(u);
       box.appendChild(btn);
     });
