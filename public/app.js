@@ -455,20 +455,22 @@ function stokListeFiltrele(q) {
         </td>
       </tr>`;
 
+  const htmlParcalari = [];
   for (const [, grup] of gruplar) {
     const items = grup.items.sort((a, b) => Number(b.AmbalajMiktari || 0) - Number(a.AmbalajMiktari || 0));
     if (items.length > 1) {
       const toplamAdet = items.reduce((s, u) => s + Number(u.MevcutMiktar || 0), 0);
-      tb.innerHTML += `<tr class="table-success bg-opacity-10">
+      htmlParcalari.push(`<tr class="table-success bg-opacity-10">
         <td colspan="7" class="py-2"><i class="fa-solid fa-flask me-2 text-success"></i><strong>${gunlukMetinEsc(grup.ad)}</strong>
           <span class="badge bg-success ms-2">${items.length} ambalaj</span>
-          <span class="small text-muted ms-2">toplam ${toplamAdet} adet stok</span></td></tr>`;
-      items.forEach((u) => { tb.innerHTML += stokSatirHtml(u, true); });
+          <span class="small text-muted ms-2">toplam ${toplamAdet} adet stok</span></td></tr>`);
+      items.forEach((u) => { htmlParcalari.push(stokSatirHtml(u, true)); });
     } else {
-      items.forEach((u) => { tb.innerHTML += stokSatirHtml(u, false); });
+      items.forEach((u) => { htmlParcalari.push(stokSatirHtml(u, false)); });
     }
   }
-  tekil.forEach((u) => { tb.innerHTML += stokSatirHtml(u, false); });
+  tekil.forEach((u) => { htmlParcalari.push(stokSatirHtml(u, false)); });
+  tb.innerHTML = htmlParcalari.join('');
 }
 
 let stokListeModalGeriAc = false;
