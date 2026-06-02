@@ -1678,6 +1678,44 @@ app.post('/api/recete/kaydet', async (req, res) => {
   }
 });
 
+app.get('/api/receteler', async (req, res) => {
+  try {
+    const arama = String(req.query.arama || '').trim();
+    const limit = Math.min(300, Math.max(1, Number(req.query.limit) || 150));
+    const pool = await poolPromise;
+    const request = pool.request().input('Limit', sql.Int, limit);
+    let where = '';
+    if (arama) {
+      request.input('Ara', sql.NVarChar(80), `%${arama}%`);
+      where = ` WHERE (
+        CAST(r.ReceteID AS NVARCHAR(20)) LIKE @Ara OR
+        r.TarimUrunAdi LIKE @Ara OR
+        m.AdSoyad LIKE @Ara OR
+        m.FirmaAdi LIKE @Ara
+      )`;
+    }
+    const rs = await request.query(`
+      SELECT TOP (@Limit)
+        r.ReceteID, r.MusteriID, r.TarimUrunID, r.TarimUrunAdi, r.Dekar, r.Tarih, r.Notlar,
+        ISNULL(r.SatisYapildi, 0) AS SatisYapildi,
+        (SELECT COUNT(*) FROM MusteriReceteSatirlar s WHERE s.ReceteID = r.ReceteID) AS KalemSayisi,
+        m.AdSoyad, m.FirmaAdi, m.tur
+      FROM MusteriReceteler r
+      INNER JOIN Musteriler m ON m.MusteriID = r.MusteriID
+      ${where}
+      ORDER BY r.Tarih DESC, r.ReceteID DESC
+    `);
+    const rows = rs.recordset.map((row) => ({
+      ...row,
+      MusteriAd: musteriGorunenAdKayit(row),
+    }));
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json([]);
+  }
+});
+
 app.get('/api/musteri/:id/receteler', async (req, res) => {
   try {
     const musteriID = Number(req.params.id);
@@ -1721,6 +1759,93 @@ app.get('/api/recete/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Okuma hatası.' });
+  }
+});
+
+app.put('/api/recete/:id', async (req, res) => {
+  try {
+    const receteID = Number(req.params.id);
+    const musteriID = Number(req.body?.musteriID);
+    const tarimUrunID = Number(req.body?.tarimUrunID);
+    const dekar = Number(req.body?.dekar);
+    const satirlar = Array.isArray(req.body?.satirlar) ? req.body.satirlar : [];
+    const notlar = String(req.body?.notlar || '').trim().substring(0, 500) || null;
+    const kullanici = req.body?.kullanici || 'Sistem';
+
+    if (!receteID || !musteriID || !tarimUrunID || !Number.isFinite(dekar) || dekar <= 0) {
+      return res.status(400).json({ success: false, message: 'Reçete, müşteri, ürün ve dekar zorunlu.' });
+    }
+    if (!satirlar.length) {
+      return res.status(400).json({ success: false, message: 'En az bir malzeme ekleyin.' });
+    }
+
+    const pool = await poolPromise;
+    const mevcut = await pool.request()
+      .input('RID', sql.Int, receteID)
+      .query('SELECT ReceteID, MusteriID FROM MusteriReceteler WHERE ReceteID = @RID');
+    if (!mevcut.recordset.length) {
+      return res.status(404).json({ success: false, message: 'Reçete bulunamadı.' });
+    }
+    if (Number(mevcut.recordset[0].MusteriID) !== musteriID) {
+      return res.status(400).json({ success: false, message: 'Müşteri uyuşmuyor.' });
+    }
+
+    const urunRs = await pool.request()
+      .input('UID', sql.Int, tarimUrunID)
+      .query('SELECT UrunAdi FROM TarimUrunler WHERE TarimUrunID = @UID');
+    const tarimUrunAdi = urunRs.recordset[0]?.UrunAdi || '';
+
+    await pool.request()
+      .input('RID', sql.Int, receteID)
+      .input('MID', sql.Int, musteriID)
+      .input('UID', sql.Int, tarimUrunID)
+      .input('UrunAdi', sql.NVarChar(100), tarimUrunAdi)
+      .input('Dekar', sql.Decimal(18, 2), dekar)
+      .input('Notlar', sql.NVarChar(500), notlar)
+      .query(`
+        UPDATE MusteriReceteler
+        SET MusteriID = @MID, TarimUrunID = @UID, TarimUrunAdi = @UrunAdi, Dekar = @Dekar, Notlar = @Notlar
+        WHERE ReceteID = @RID
+      `);
+
+    await pool.request()
+      .input('RID', sql.Int, receteID)
+      .query('DELETE FROM MusteriReceteSatirlar WHERE ReceteID = @RID');
+
+    for (const sat of satirlar) {
+      const plan = sat.plan || sat.secim || [];
+      await pool.request()
+        .input('RID', sql.Int, receteID)
+        .input('StokID', sql.Int, sat.stokID || null)
+        .input('UrunAdi', sql.NVarChar(150), String(sat.urunAdi || '').substring(0, 150))
+        .input('GID', sql.Int, sat.malzemeGrupID || null)
+        .input('MiktarDekar', sql.Decimal(18, 4), sat.miktarDekar != null ? sat.miktarDekar : null)
+        .input('Birim', sql.NVarChar(10), String(sat.birim || 'Lt').substring(0, 10))
+        .input('Toplam', sql.Decimal(18, 3), sat.toplamIhtiyac)
+        .input('Tip', sql.NVarChar(20), String(sat.secimTip || 'azAtik').substring(0, 20))
+        .input('PlanJson', sql.NVarChar(sql.MAX), JSON.stringify(plan))
+        .query(`
+          INSERT INTO MusteriReceteSatirlar
+            (ReceteID, StokID, UrunAdi, MalzemeGrupID, MiktarDekar, Birim, ToplamIhtiyac, SecimTip, PlanJson)
+          VALUES (@RID, @StokID, @UrunAdi, @GID, @MiktarDekar, @Birim, @Toplam, @Tip, @PlanJson)
+        `);
+    }
+
+    const musRs = await pool.request()
+      .input('MID', sql.Int, musteriID)
+      .query('SELECT AdSoyad, FirmaAdi, tur FROM Musteriler WHERE MusteriID = @MID');
+    const musAd = musteriGorunenAdKayit(musRs.recordset[0] || {});
+    await islemKaydet(
+      kullanici,
+      'Reçete Güncelleme',
+      `${musAd}: ${tarimUrunAdi} ${dekar} da — ${satirlar.length} kalem (No:${receteID})`,
+      req,
+    );
+
+    res.json({ success: true, receteID, message: 'Reçete güncellendi.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Güncelleme hatası.' });
   }
 });
 

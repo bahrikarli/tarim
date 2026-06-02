@@ -52,6 +52,7 @@
         .bg-gradient-alacak { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
         .bg-gradient-musteri { background: linear-gradient(135deg, #fbc02d, #f9a825); }
         .bg-gradient-stok  { background: linear-gradient(135deg, #dc3545, #bb2d3b); }
+        .bg-gradient-recete { background: linear-gradient(135deg, #1565c0, #1e88e5); }
 
         #aramaSonuclari {
             max-height: 280px;
@@ -261,9 +262,6 @@
             .ozet-kart-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
-            .ozet-kart-grid .ozet-kart-ucuncu {
-                grid-column: 1 / 2;
-            }
         }
         .ozet-rozet-kutu .card-body {
             padding: 1.45rem 1.25rem !important;
@@ -335,6 +333,24 @@
         .recete-split-sol { background: #f8faf8; max-height: min(72vh, 640px); overflow-y: auto; }
         .recete-split-sag { max-height: min(72vh, 640px); overflow-y: auto; background: #fff; }
         .recete-sol-liste .list-group-item { border-left: 3px solid transparent; padding: 0.65rem 0.75rem; }
+        #ozetReceteHizliModal .recete-split { min-height: min(58vh, 480px); }
+        #ozetReceteHizliModal .recete-split-sol,
+        #ozetReceteHizliModal .recete-split-sag { max-height: min(58vh, 480px); }
+        .recete-birim-fiyat-inp {
+            max-width: 6.5rem;
+            font-size: 0.8rem;
+            padding: 0.15rem 0.35rem;
+        }
+        #ozetReceteKayitliListe .ozet-recete-aksiyon .btn {
+            width: 1.65rem;
+            height: 1.65rem;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            font-size: 0.72rem;
+        }
         .recete-sol-liste .list-group-item.active {
             border-left-color: #2e7d32;
             background: #e8f5e9;
@@ -844,7 +860,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="card ozet-kart ozet-rozet-kutu ozet-kart-ucuncu ozet-rozet-tikla border-0 shadow-sm overflow-hidden"
+                    <div class="card ozet-kart ozet-rozet-kutu ozet-rozet-tikla border-0 shadow-sm overflow-hidden"
                          role="button" tabindex="0"
                          onclick="menuyuGoster('stok')" onkeydown="if(event.key==='Enter'||event.key===' ')menuyuGoster('stok')"
                          title="Stok listesini aç">
@@ -859,11 +875,88 @@
                             </div>
                         </div>
                     </div>
+                    <div class="card ozet-kart ozet-rozet-kutu ozet-rozet-tikla border-0 shadow-sm overflow-hidden"
+                         role="button" tabindex="0"
+                         onclick="ozetReceteOlusturAc()" onkeydown="if(event.key==='Enter'||event.key===' ')ozetReceteOlusturAc()"
+                         title="Hızlı reçete oluştur">
+                        <div class="card-body bg-gradient-recete position-relative">
+                            <span class="badge bg-white bg-opacity-25 text-white position-absolute top-0 end-0 mt-2 me-2">Reçete</span>
+                            <div class="d-flex justify-content-between align-items-center gap-2">
+                                <div class="min-w-0 flex-grow-1">
+                                    <div class="ozet-rozet-ust text-white" style="font-size:1.2rem;line-height:1.25">Reçete</div>
+                                    <div class="ozet-rozet-alt text-white" style="opacity: 0.9;">Oluştur</div>
+                                </div>
+                                <div class="text-white opacity-90 flex-shrink-0 align-self-center"><i class="fa-solid fa-flask fa-3x"></i></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+        <div class="modal fade" id="ozetReceteHizliModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width:960px;">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header text-white border-0 py-3" style="background:linear-gradient(135deg,#1565c0,#42a5f5);">
+                        <h5 class="modal-title mb-0"><i class="fa-solid fa-flask me-2"></i>Reçete oluştur</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <div class="recete-split row g-0">
+                            <aside class="col-12 col-md-5 recete-split-sol border-end">
+                                <div class="p-3">
+                                    <div class="small text-muted fw-semibold text-uppercase mb-2" style="letter-spacing:.04em;font-size:.7rem;">Kayıtlı reçeteler</div>
+                                    <input type="text" class="form-control form-control-sm mb-2" id="ozetReceteListeAra" placeholder="Müşteri, ürün veya no…" autocomplete="off"
+                                        oninput="ozetReceteKayitliListeYukle()">
+                                    <div id="ozetReceteKayitliListe" class="recete-sol-liste">
+                                        <p class="text-muted small mb-0 py-2">Yükleniyor…</p>
+                                    </div>
+                                </div>
+                            </aside>
+                            <section class="col-12 col-md-7 recete-split-sag">
+                                <div class="p-3 px-4">
+                                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                        <div>
+                                            <div class="fw-semibold text-success mb-0" id="ozetReceteSagBaslik">Yeni reçete oluştur</div>
+                                            <p class="text-muted small mb-0 mt-1" id="ozetReceteSagAciklama">Müşteri, tarım ürünü ve dekar girin; kayıtlı reçeteyi soldan düzenleyebilirsiniz.</p>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0 d-none" id="ozetReceteFormTemizleBtn"
+                                            onclick="ozetReceteYeniFormTemizle()" title="Formu temizle">Temizle</button>
+                                    </div>
+                                    <div class="mb-3 position-relative" id="ozetReceteMusteriWrap">
+                                        <label class="form-label fw-semibold small mb-1" for="ozetReceteMusteriAra">Müşteri</label>
+                                        <input type="text" class="form-control" id="ozetReceteMusteriAra" placeholder="Ad, firma, telefon veya no…" autocomplete="off"
+                                            oninput="ozetReceteMusteriAraGuncelle(this.value)" onkeydown="ozetReceteMusteriAraKeydown(event)">
+                                        <input type="hidden" id="ozetReceteMusteriID" value="">
+                                        <div id="ozetReceteMusteriSonuclari" class="list-group position-absolute w-100 mt-1 shadow-sm d-none" style="z-index:1060;max-height:200px;overflow:auto;"></div>
+                                        <div id="ozetReceteMusteriSecili" class="small text-primary fw-semibold mt-1 d-none"></div>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-7">
+                                            <label class="form-label fw-semibold small mb-1" for="ozetReceteUrunID">Tarım ürünü</label>
+                                            <select class="form-select" id="ozetReceteUrunID" required></select>
+                                        </div>
+                                        <div class="col-5">
+                                            <label class="form-label fw-semibold small mb-1" for="ozetReceteDekar">Dekar</label>
+                                            <input type="number" class="form-control" id="ozetReceteDekar" min="0.01" step="0.01" placeholder="Örn. 10" required
+                                                onkeydown="if(event.key==='Enter'){event.preventDefault();ozetReceteHizliBasla();}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 px-4 pb-4 pt-0 gap-2">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Vazgeç</button>
+                        <button type="button" class="btn btn-primary px-4" id="ozetReceteBaslaBtn" onclick="ozetReceteHizliBasla()">
+                            <i class="fa-solid fa-arrow-right me-1"></i>Malzeme ekle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="modal fade" id="tanimlamalarModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -3205,10 +3298,10 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/utils.js?v=1.0.56"></script>
-    <script src="js/navigation.js?v=1.0.56"></script>
+    <script src="js/utils.js?v=1.0.57"></script>
+    <script src="js/navigation.js?v=1.0.57"></script>
     <script src="js/tanimlamalar.js?v=5"></script>
     <script src="js/recete.js?v=17"></script>
-    <script src="app.js?v=1.0.56"></script>
+    <script src="app.js?v=1.0.57"></script>
 </body>
 </html>
