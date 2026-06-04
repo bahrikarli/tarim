@@ -475,6 +475,16 @@
   }
 
   /* ——— Reçete (mobil) ——— */
+  function mobilReceteOnerileriDuzelt(oneriler) {
+    if (!oneriler?.secimGerekli || !oneriler.enYakin || !oneriler.enUzak) return oneriler;
+    const yF = Number(oneriler.enYakin.fire) || 0;
+    const uF = Number(oneriler.enUzak.fire) || 0;
+    if (yF > uF + 1e-6) {
+      return { ...oneriler, enYakin: oneriler.enUzak, enUzak: oneriler.enYakin };
+    }
+    return oneriler;
+  }
+
   function mobilReceteVarsayilanSecimTip(oneriler) {
     if (!oneriler) return 'enYakin';
     if (oneriler.tamBolunmus || (oneriler.tamDenk && oneriler.tamUyum)) return 'tamUyum';
@@ -522,21 +532,72 @@
     return !!(plan && plan.tam === true);
   }
 
-  function mobilRecetePlanHtml(plan, birim, ambalajlar) {
+  function mobilRecetePlanSayilariGuncelle(plan, ihtiyac) {
+    if (!plan?.secim?.length) return plan;
+    const need = Number(ihtiyac ?? plan.ihtiyac) || 0;
+    const miktarToplam = plan.secim.reduce(
+      (s, x) => s + (Number(x.adet) || 0) * (Number(x.ambalajMiktari) || 0),
+      0,
+    );
+    plan.adetToplam = plan.secim.reduce((s, x) => s + (Number(x.adet) || 0), 0);
+    plan.miktarToplam = Math.round(miktarToplam * 1000) / 1000;
+    plan.ihtiyac = Math.round(need * 1000) / 1000;
+    plan.fire = Math.round((miktarToplam - need) * 1000) / 1000;
+    if (plan.fire < 1e-6) plan.fire = 0;
+    return plan;
+  }
+
+  function mobilReceteSonucYenidenCiz(container, kayitModu) {
+    if (!container || !mobilReceteSonuc) return;
+    container.innerHTML = mobilReceteSonucHtml(mobilReceteSonuc, kayitModu);
+    mobilReceteSonucBagla(container);
+    if (kayitModu && mobilReceteSonuc.malzemeler?.length) {
+      const gt = Math.round(
+        mobilReceteSonuc.malzemeler.reduce((acc, m) => acc + mobilReceteSatirMaliyet(m).toplam, 0) * 100,
+      ) / 100;
+      mobilReceteKaydetBarGoster(true, gt);
+    }
+  }
+
+  function mobilReceteAdetDegisti(container, idx, stokID, deger, kayitModu) {
+    const m = mobilReceteSonuc?.malzemeler?.[idx];
+    if (!m) return;
+    const adet = Math.floor(Number(String(deger ?? '').replace(',', '.')));
+    if (!Number.isFinite(adet) || adet < 1) {
+      alert('Adet en az 1 olmalı.');
+      mobilReceteSonucYenidenCiz(container, kayitModu);
+      return;
+    }
+    const plan = mobilReceteAktifPlan(m);
+    if (!plan?.secim?.length) return;
+    const kalem = plan.secim.find((p) => Number(p.stokID) === Number(stokID));
+    if (!kalem) return;
+    kalem.adet = adet;
+    mobilRecetePlanSayilariGuncelle(plan, m.toplamIhtiyac);
+    m.planManuel = true;
+    mobilReceteSonucYenidenCiz(container, kayitModu);
+  }
+
+  function mobilRecetePlanHtml(plan, birim, ambalajlar, opts = {}) {
     if (!plan?.secim?.length) {
       return '<p class="bos-metin" style="padding:8px 0">Ambalaj planı yok</p>';
     }
     const b = birim || 'Lt';
     const { kalemler, toplam } = mobilRecetePlanMaliyet(plan, ambalajlar);
     const tam = mobilRecetePlanTamMi(plan);
+    const duzenle = opts.editable && Number.isFinite(opts.idx);
     const satirlar = kalemler.map((s) => {
       const stokUyari = Number(s.mevcutMiktar) < s.adet
         ? ' <span class="stok-uyari">stok!</span>'
         : '';
       const ad = esc(s.urunAdi || '—');
+      const adetHucre = duzenle
+        ? `<input type="number" class="mobil-recete-adet-inp" min="1" step="1" value="${Number(s.adet) || 1}"
+            data-recete-idx="${opts.idx}" data-stok-id="${Number(s.stokID)}">`
+        : String(s.adet);
       return `<tr>
         <td>${ad}${stokUyari}</td>
-        <td class="sayi">${s.adet}</td>
+        <td class="sayi">${adetHucre}</td>
         <td class="sayi">${para(s.birimFiyat)}</td>
         <td class="sayi">${para(s.tutar)}</td>
       </tr>`;
@@ -565,16 +626,16 @@
       const chkU = secimTip === 'enUzak' ? 'checked' : '';
       secimHtml = `<div class="mobil-recete-secim" data-recete-idx="${idx}">
         <span>Tam denk değil:</span>
-        <label><input type="radio" name="mobilReceteSecim_${key}" value="enYakin" ${chkY}> En yakın</label>
-        <label><input type="radio" name="mobilReceteSecim_${key}" value="enUzak" ${chkU}> En uzak</label>
+        <label><input type="radio" name="mobilReceteSecim_${key}" value="enYakin" ${chkY}> ${typeof receteSecimEtiket === 'function' ? receteSecimEtiket('enYakin') : 'İhtiyaca en yakın seçenek'}</label>
+        <label><input type="radio" name="mobilReceteSecim_${key}" value="enUzak" ${chkU}> ${typeof receteSecimEtiket === 'function' ? receteSecimEtiket('enUzak') : 'İhtiyacı en az geçen seçenek'}</label>
       </div>`;
       const plan = secimTip === 'enUzak' ? m.oneriler.enUzak : m.oneriler.enYakin;
-      planHtml = mobilRecetePlanHtml(plan, birim, m.ambalajlar);
+      planHtml = mobilRecetePlanHtml(plan, birim, m.ambalajlar, { editable: true, idx });
     } else {
       const o = m.oneriler;
       const tamPlan = o?.tamBolunmus || o?.tamUyum;
       const plan = mobilReceteAktifPlan(m) || tamPlan || o?.enYakin || o?.azAtik;
-      planHtml = mobilRecetePlanHtml(plan, birim, m.ambalajlar);
+      planHtml = mobilRecetePlanHtml(plan, birim, m.ambalajlar, { editable: true, idx });
     }
 
     const maliyet = mobilReceteSatirMaliyet(m);
@@ -635,6 +696,7 @@
       </div>`;
     }
     data.malzemeler.forEach((m) => {
+      if (m.oneriler) m.oneriler = mobilReceteOnerileriDuzelt(m.oneriler);
       if (!m.secimTip) m.secimTip = mobilReceteVarsayilanSecimTip(m.oneriler);
     });
     const genelToplam = Math.round(
@@ -656,6 +718,7 @@
 
   function mobilReceteSonucBagla(container) {
     if (!container) return;
+    const kayit = mobilReceteKayitModu;
     container.querySelectorAll('.mobil-recete-secim input[type="radio"]').forEach((inp) => {
       inp.onchange = () => {
         if (!mobilReceteSonuc?.malzemeler) return;
@@ -663,15 +726,14 @@
         const idx = Number(wrap?.dataset?.receteIdx);
         if (!Number.isFinite(idx)) return;
         mobilReceteSonuc.malzemeler[idx].secimTip = inp.value;
-        const kayit = mobilReceteKayitModu;
-        container.innerHTML = mobilReceteSonucHtml(mobilReceteSonuc, kayit);
-        mobilReceteSonucBagla(container);
-        if (kayit && mobilReceteSonuc.malzemeler.length) {
-          const gt = Math.round(
-            mobilReceteSonuc.malzemeler.reduce((acc, m) => acc + mobilReceteSatirMaliyet(m).toplam, 0) * 100,
-          ) / 100;
-          mobilReceteKaydetBarGoster(true, gt);
-        }
+        mobilReceteSonucYenidenCiz(container, kayit);
+      };
+    });
+    container.querySelectorAll('.mobil-recete-adet-inp').forEach((inp) => {
+      inp.onchange = () => {
+        const idx = Number(inp.dataset.receteIdx);
+        const stokID = Number(inp.dataset.stokId);
+        mobilReceteAdetDegisti(container, idx, stokID, inp.value, kayit);
       };
     });
   }

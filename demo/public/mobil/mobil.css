@@ -692,6 +692,15 @@ body { overflow: hidden; }
   text-align: left;
 }
 .mobil-recete-plan-tablo .sayi { text-align: right; white-space: nowrap; }
+.mobil-recete-adet-inp {
+  width: 3.25rem;
+  max-width: 100%;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.9rem;
+  text-align: right;
+  border: 1px solid var(--border, #ced4da);
+  border-radius: 0.35rem;
+}
 .mobil-recete-plan-tablo .stok-uyari { color: var(--danger); font-weight: 600; }
 .mobil-recete-fire {
   font-size: 0.75rem;

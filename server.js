@@ -1690,6 +1690,7 @@ app.get('/api/receteler', async (req, res) => {
       where = ` WHERE (
         CAST(r.ReceteID AS NVARCHAR(20)) LIKE @Ara OR
         r.TarimUrunAdi LIKE @Ara OR
+        ISNULL(r.Notlar, N'') LIKE @Ara OR
         m.AdSoyad LIKE @Ara OR
         m.FirmaAdi LIKE @Ara
       )`;

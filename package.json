@@ -1,6 +1,6 @@
 {
   "name": "tarim-otomasyon",
-  "version": "1.0.60",
+  "version": "1.0.61",
   "description": "Tarım — stok, reçete ve müşteri işleri",
   "author": "EMIR ELEKTRIK",
   "repository": {
@@ -21,7 +21,9 @@
     "build:desktop:clean": "taskkill /F /IM \"Tarım Otomasyon.exe\" >nul 2>&1 & rmdir /s /q dist-desktop >nul 2>&1 & set CSC_IDENTITY_AUTO_DISCOVERY=false && electron-builder --win nsis",
     "build:desktop:fresh": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$ts=Get-Date -Format yyyyMMdd-HHmmss; $env:CSC_IDENTITY_AUTO_DISCOVERY='false'; npx electron-builder --win nsis --config.directories.output=dist-desktop-$ts\"",
     "publish:desktop": "taskkill /F /IM \"Tarım Otomasyon.exe\" >nul 2>&1 & set CSC_IDENTITY_AUTO_DISCOVERY=false && electron-builder --win nsis --publish always",
-    "publish:desktop:fresh": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$ts=Get-Date -Format yyyyMMdd-HHmmss; $env:CSC_IDENTITY_AUTO_DISCOVERY='false'; npx electron-builder --win nsis --publish always --config.directories.output=dist-desktop-$ts\""
+    "publish:desktop:fresh": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$ts=Get-Date -Format yyyyMMdd-HHmmss; $env:CSC_IDENTITY_AUTO_DISCOVERY='false'; npx electron-builder --win nsis --publish always --config.directories.output=dist-desktop-$ts\"",
+    "import:musteri": "node scripts/musteri-excel-aktar.js",
+    "import:musteri:dry": "node scripts/musteri-excel-aktar.js --dry-run"
   },
   "dependencies": {
     "adm-zip": "^0.5.17",
@@ -29,7 +31,8 @@
     "dotenv": "^16.4.5",
     "electron-updater": "^6.6.2",
     "express": "^4.21.0",
-    "mssql": "^11.0.1"
+    "mssql": "^11.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "electron": "^37.1.0",

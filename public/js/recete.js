@@ -7,9 +7,11 @@ let receteKayitliGoruntuleme = null;
 let receteAktifKayitliID = null;
 let receteDuzenlemeReceteID = null;
 let receteSolListeSatirlari = [];
-let ozetReceteSeciliKayitliID = null;
+let ozetReceteListeVurguID = null;
 let ozetReceteKayitliSatirlari = [];
 let ozetReceteHizliDonus = false;
+let receteGoruntuleSonReceteID = null;
+let receteGoruntuleCache = null;
 
 function receteParaFormat(tutar) {
   return `${Number(tutar || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`;
@@ -58,6 +60,40 @@ function receteSatirBirimFiyatDegisti(satirKey, stokID, deger) {
     return;
   }
   receteSatirPlanFiyatGuncelle(sat, stokID, fiyat);
+  receteSatirlarRender();
+}
+
+function recetePlanSayilariGuncelle(plan, ihtiyac) {
+  if (!plan?.secim?.length) return plan;
+  const need = Number(ihtiyac ?? plan.ihtiyac) || 0;
+  const miktarToplam = plan.secim.reduce(
+    (s, x) => s + (Number(x.adet) || 0) * (Number(x.ambalajMiktari) || 0),
+    0,
+  );
+  plan.adetToplam = plan.secim.reduce((s, x) => s + (Number(x.adet) || 0), 0);
+  plan.miktarToplam = Math.round(miktarToplam * 1000) / 1000;
+  plan.ihtiyac = Math.round(need * 1000) / 1000;
+  plan.fire = Math.round((miktarToplam - need) * 1000) / 1000;
+  if (plan.fire < 1e-6) plan.fire = 0;
+  return plan;
+}
+
+function receteSatirAdetDegisti(satirKey, stokID, deger) {
+  const sat = receteSatirlar.find((s) => s.key === satirKey);
+  if (!sat) return;
+  const adet = Math.floor(Number(String(deger ?? '').replace(',', '.')));
+  if (!Number.isFinite(adet) || adet < 1) {
+    alert('Adet en az 1 olmalı.');
+    receteSatirlarRender();
+    return;
+  }
+  const plan = receteAktifPlan(sat);
+  if (!plan?.secim?.length) return;
+  const kalem = plan.secim.find((p) => Number(p.stokID) === Number(stokID));
+  if (!kalem) return;
+  kalem.adet = adet;
+  recetePlanSayilariGuncelle(plan, sat.toplamIhtiyac);
+  sat.planManuel = true;
   receteSatirlarRender();
 }
 
@@ -175,31 +211,36 @@ function recetePlanKompaktHtml(plan, birim, ambalajlar, opts = {}) {
             onchange="receteSatirBirimFiyatDegisti('${opts.satirKey}', ${Number(s.stokID)}, this.value)"
             onclick="event.stopPropagation()">`
       : receteParaFormat(s.birimFiyat);
+    const adetHucre = fiyatDuzenle
+      ? `<input type="number" class="form-control form-control-sm text-end recete-adet-inp"
+            min="1" step="1" value="${Number(s.adet) || 1}" title="Ambalaj adedi"
+            onchange="receteSatirAdetDegisti('${opts.satirKey}', ${Number(s.stokID)}, this.value)"
+            onclick="event.stopPropagation()">`
+      : String(s.adet);
     return `<tr>
       <td class="recete-plan-urun">${stokAd}${stokUyari}</td>
-      <td class="text-end text-nowrap">${s.adet}</td>
+      <td class="text-end text-nowrap${fiyatDuzenle ? ' p-1' : ''}">${adetHucre}</td>
       <td class="text-end text-nowrap${fiyatDuzenle ? ' p-1' : ''}">${fiyatHucre}</td>
       <td class="text-end text-nowrap fw-semibold">${receteParaFormat(s.tutar)}</td>
     </tr>`;
   }).join('');
-  const fireNot = !tam && plan.fire > 0
-    ? `<div class="small text-warning py-1 px-2 border-top">(+${plan.fire} ${b} fazla ambalaj)</div>`
-    : '';
+  const fireVar = !tam && plan.fire > 0;
   const baslik = opts.baslik
     ? `<div class="small text-muted px-2 pt-1">${gunlukMetinEsc(opts.baslik)}</div>`
     : '';
-  const fiyatNot = fiyatDuzenle
-    ? '<div class="small text-muted px-2 pt-1"><i class="fa-solid fa-pen-to-square me-1"></i>Birim fiyatları el ile değiştirebilirsiniz.</div>'
-    : '';
-  const altToplam = kalemler.length > 1
+  const altToplam = kalemler.length > 1 && !opts.faturaKalem
     ? `<tr class="recete-plan-alt-toplam">
-        <td colspan="3" class="text-end text-muted small">Satır toplamı</td>
+        <td colspan="3" class="text-end text-muted small">Ara toplam</td>
         <td class="text-end text-nowrap fw-bold text-success">${receteParaFormat(toplam)}</td>
       </tr>`
     : '';
-  return `<div class="recete-plan-kompakt">
+  const fireAlt = fireVar
+    ? (opts.faturaKalem
+      ? `<div class="recete-fatura-not small text-warning border-top px-3 py-1 mb-0">Not: ${plan.fire} ${b} fazla ambalaj.</div>`
+      : `<div class="small text-warning py-1 px-2 border-top">(+${plan.fire} ${b} fazla ambalaj)</div>`)
+    : '';
+  return `<div class="recete-plan-kompakt${opts.faturaKalem ? ' recete-plan-kompakt-fatura' : ''}">
     ${baslik}
-    ${fiyatNot}
     <table class="table table-sm recete-plan-fatura mb-0">
       <thead>
         <tr>
@@ -211,7 +252,72 @@ function recetePlanKompaktHtml(plan, birim, ambalajlar, opts = {}) {
       </thead>
       <tbody>${satirlar}${altToplam}</tbody>
     </table>
-    ${fireNot}
+    ${fireAlt}
+  </div>`;
+}
+
+function receteMiktarFmt(v, birim) {
+  const n = Number(v);
+  const b = birim || 'Lt';
+  if (!Number.isFinite(n)) return `— ${b}`;
+  const s = n >= 1
+    ? n.toLocaleString('tr-TR', { maximumFractionDigits: 2 })
+    : n.toLocaleString('tr-TR', { maximumFractionDigits: 4 });
+  return `${s} ${b}`;
+}
+
+/** Çiftçi için: dozaj (dekar başı) ve tarla toplam ihtiyaç — ayrı satırlar. */
+function receteKalemDozajIhtiyacHtml(m, birim) {
+  const b = birim || m.birim || 'Lt';
+  const iht = Number(m.toplamIhtiyac);
+  const dekar = Number(m.dekar ?? receteCtx?.dekar);
+  const dozaj = m.miktarDekar != null ? Number(m.miktarDekar) : null;
+  const satirlar = [];
+
+  if (Number.isFinite(dozaj) && dozaj > 0) {
+    satirlar.push(`<div class="recete-dozaj-satir"><span class="recete-etiket-dozaj">Dozaj</span> <strong>${receteMiktarFmt(dozaj, b)}/da</strong></div>`);
+  }
+  if (Number.isFinite(iht) && iht > 0) {
+    const dekarNot = Number.isFinite(dekar) && dekar > 0
+      ? ` <span class="text-muted fw-normal">(${dekar} da tarla)</span>`
+      : '';
+    satirlar.push(`<div class="recete-ihtiyac-satir"><span class="recete-etiket-ihtiyac">İhtiyaç (toplam)</span> <strong class="text-success">${receteMiktarFmt(iht, b)}</strong>${dekarNot}</div>`);
+  }
+  if (!satirlar.length) return '';
+  return `<div class="recete-dozaj-ihtiyac">${satirlar.join('')}</div>`;
+}
+
+function receteKalemIhtiyacNotu(m, birim) {
+  const b = birim || m.birim || 'Lt';
+  const iht = Number(m.toplamIhtiyac);
+  const dekar = Number(m.dekar ?? receteCtx?.dekar);
+  const dozaj = m.miktarDekar != null ? Number(m.miktarDekar) : null;
+  const parcalar = [];
+  if (Number.isFinite(dozaj) && dozaj > 0) parcalar.push(`Dozaj: ${receteMiktarFmt(dozaj, b)}/da`);
+  if (Number.isFinite(iht) && iht > 0) {
+    let t = `İhtiyaç (toplam): ${receteMiktarFmt(iht, b)}`;
+    if (Number.isFinite(dekar) && dekar > 0) t += ` — ${dekar} da`;
+    parcalar.push(t);
+  }
+  return parcalar.join(' · ');
+}
+
+function receteMalzemeSecimRadyoHtml(satirKey, secimTip, oneriler) {
+  if (!oneriler?.secimGerekli || !oneriler.enYakin || !oneriler.enUzak) return '';
+  const chkY = secimTip === 'enYakin' || secimTip === 'tamUyum' ? 'checked' : '';
+  const chkU = secimTip === 'enUzak' ? 'checked' : '';
+  const etiketYakin = typeof receteSecimEtiket === 'function' ? receteSecimEtiket('enYakin') : 'İhtiyaca en yakın seçenek';
+  const etiketAzGecen = typeof receteSecimEtiket === 'function' ? receteSecimEtiket('enUzak') : 'İhtiyacı en az geçen seçenek';
+  return `<div class="recete-fatura-secim px-3 py-2 border-top bg-white small">
+    <div class="text-warning mb-1">Ambalaj seçimi</div>
+    <div class="form-check mb-1">
+      <input class="form-check-input" type="radio" name="receteSecim_${satirKey}" id="receteEnYakin_${satirKey}" value="enYakin" ${chkY} onchange="receteSatirSecimDegisti('${satirKey}', 'enYakin')">
+      <label class="form-check-label" for="receteEnYakin_${satirKey}">${etiketYakin}</label>
+    </div>
+    <div class="form-check mb-0">
+      <input class="form-check-input" type="radio" name="receteSecim_${satirKey}" id="receteEnUzak_${satirKey}" value="enUzak" ${chkU} onchange="receteSatirSecimDegisti('${satirKey}', 'enUzak')">
+      <label class="form-check-label" for="receteEnUzak_${satirKey}">${etiketAzGecen}</label>
+    </div>
   </div>`;
 }
 
@@ -222,6 +328,16 @@ function recetePlanSatirHtml(plan, etiket, birim, malzemeAdi, ambalajlar) {
 function recetePlanlarAyniMi(a, b) {
   if (!a || !b) return a === b;
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function receteOnerileriDuzelt(oneriler) {
+  if (!oneriler?.secimGerekli || !oneriler.enYakin || !oneriler.enUzak) return oneriler;
+  const yF = Number(oneriler.enYakin.fire) || 0;
+  const uF = Number(oneriler.enUzak.fire) || 0;
+  if (yF > uF + 1e-6) {
+    return { ...oneriler, enYakin: oneriler.enUzak, enUzak: oneriler.enYakin };
+  }
+  return oneriler;
 }
 
 function receteVarsayilanSecimTip(oneriler) {
@@ -243,108 +359,75 @@ function receteAktifPlan(satir) {
   return o.enYakin || o.azAtik || o.enUzak || o.tamUyum || null;
 }
 
-function receteMalzemeKartHtml(m, opts = {}) {
-  const birim = m.birim || 'Lt';
-  const satirKey = opts.satirKey || `k${Math.random().toString(36).slice(2, 8)}`;
-  const secimTip = m.secimTip || 'azAtik';
-  const detayId = `receteDetay_${satirKey}`;
-  const amb = receteAmbalajlarFromPlan(m);
-  const malzAd = m.grupAdi || m.urunAdi;
-  const planOpts = opts.editable ? { editable: true, satirKey } : {};
-  let planHtml = '';
-
+function receteMalzemePlanHtml(m, opts, birim, amb, satirKey, secimTip) {
+  const planOpts = {
+    editable: !!opts.editable,
+    satirKey,
+    faturaKalem: true,
+  };
   if (opts.editable && m.oneriler) {
     const o = m.oneriler;
     const tamPlan = o.tamBolunmus || o.tamUyum;
-    if (o.tamDenk && tamPlan) {
-      planHtml = recetePlanKompaktHtml(tamPlan, birim, amb, planOpts);
-    } else if (o.secimGerekli && o.enYakin && o.enUzak) {
-      const chkY = secimTip === 'enYakin' || secimTip === 'tamUyum' ? 'checked' : '';
-      const chkU = secimTip === 'enUzak' ? 'checked' : '';
-      planHtml = `<p class="small text-warning mb-1 py-0">Tam denk değil — seçin:</p>
-        <div class="form-check form-check-inline small mb-1">
-          <input class="form-check-input" type="radio" name="receteSecim_${satirKey}" id="receteEnYakin_${satirKey}" value="enYakin" ${chkY} onchange="receteSatirSecimDegisti('${satirKey}', 'enYakin')">
-          <label class="form-check-label" for="receteEnYakin_${satirKey}">En yakın</label>
-        </div>
-        <div class="form-check form-check-inline small mb-2">
-          <input class="form-check-input" type="radio" name="receteSecim_${satirKey}" id="receteEnUzak_${satirKey}" value="enUzak" ${chkU} onchange="receteSatirSecimDegisti('${satirKey}', 'enUzak')">
-          <label class="form-check-label" for="receteEnUzak_${satirKey}">En uzak</label>
-        </div>
-        ${recetePlanKompaktHtml(secimTip === 'enUzak' ? o.enUzak : o.enYakin, birim, amb, planOpts)}`;
-    } else {
-      const plan = o.enYakin || o.azAtik;
-      if (plan) planHtml = recetePlanKompaktHtml(plan, birim, amb, planOpts);
+    if (o.tamDenk && tamPlan) return recetePlanKompaktHtml(tamPlan, birim, amb, planOpts);
+    if (o.secimGerekli && o.enYakin && o.enUzak) {
+      const plan = secimTip === 'enUzak' ? o.enUzak : o.enYakin;
+      return recetePlanKompaktHtml(plan, birim, amb, planOpts);
     }
-  } else {
-    const plan = receteAktifPlan(m) || m.oneriler?.tamBolunmus || m.oneriler?.enYakin || m.oneriler?.azAtik;
-    if (plan) planHtml = recetePlanKompaktHtml(plan, birim, amb, planOpts);
+    const plan = o.enYakin || o.azAtik;
+    if (plan) return recetePlanKompaktHtml(plan, birim, amb, planOpts);
   }
+  const plan = receteAktifPlan(m) || m.oneriler?.tamBolunmus || m.oneriler?.enYakin || m.oneriler?.azAtik;
+  if (plan) return recetePlanKompaktHtml(plan, birim, amb, planOpts);
+  if (!amb.length) return '<p class="small text-danger px-3 py-2 mb-0">Stokta ambalaj tanımlı değil.</p>';
+  return '<p class="small text-warning px-3 py-2 mb-0">Ambalaj planı hesaplanamadı.</p>';
+}
 
-  if (!planHtml && !amb.length) {
-    planHtml = '<p class="small text-danger mb-0">Stokta ambalaj boyutu tanımlı değil.</p>';
-  } else if (!planHtml) {
-    planHtml = '<p class="small text-warning mb-0">Ambalaj planı yok.</p>';
-  }
-
-  const stokParca = amb
-    .filter((a) => Number(a.ambalajMiktari) > 0)
-    .map((a) => `${receteAmbalajMiktariFmt(a.ambalajMiktari, birim)} · ${Number(a.mevcutMiktar ?? 0)} stok`)
-    .join(', ');
-
-  const kalemNot = receteKalemNotMetni(m, opts, birim, stokParca);
-  const kalemBaslik = `<div class="flex-grow-1 min-w-0">
-    <div class="d-flex flex-wrap align-items-baseline column-gap-2 row-gap-0">
-      <strong class="mb-0">${gunlukMetinEsc(m.grupAdi || m.urunAdi)}</strong>
-      ${kalemNot ? `<span class="small text-muted recete-kalem-not">${kalemNot}</span>` : ''}
-    </div>
-  </div>`;
+function receteMalzemeKartHtml(m, opts = {}) {
+  const birim = m.birim || 'Lt';
+  const satirKey = opts.satirKey || `k${Math.random().toString(36).slice(2, 8)}`;
+  const secimTip = m.secimTip || receteVarsayilanSecimTip(m.oneriler);
+  const amb = receteAmbalajlarFromPlan(m);
+  const malzAd = m.grupAdi || m.urunAdi;
+  const planHtml = receteMalzemePlanHtml(m, opts, birim, amb, satirKey, secimTip);
+  const secimRadio = opts.editable
+    ? receteMalzemeSecimRadyoHtml(satirKey, secimTip, m.oneriler)
+    : '';
 
   const silBtn = opts.editable
-    ? `<button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="receteSatirSil('${satirKey}')" title="Kaldır"><i class="fa-solid fa-xmark"></i></button>`
+    ? `<button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="receteSatirSil('${satirKey}')" title="Kaldır"><i class="fa-solid fa-xmark"></i></button>`
     : '';
 
   const satirMaliyet = receteSatirMaliyet(m);
-  const maliyetBadge = `<span class="badge bg-dark">${receteParaFormat(satirMaliyet.toplam)}</span>`;
+  const dozajIhtiyacHtml = receteKalemDozajIhtiyacHtml(m, birim);
 
   if (opts.testModu) {
-    return `<div class="recete-kalem border rounded mb-2 shadow-sm" data-recete-satir="${satirKey}">
-      <div class="recete-kalem-ust d-flex align-items-center flex-wrap gap-2 px-2 py-2 bg-light">
-        ${kalemBaslik}
-        ${maliyetBadge}
+    return `<div class="recete-fatura-kalem recete-urun-cerceve mb-3 overflow-hidden" data-recete-satir="${satirKey}">
+      <div class="recete-fatura-kalem-ust d-flex justify-content-between align-items-start gap-2 px-3 py-2 bg-light border-bottom">
+        <div class="min-w-0"><div class="fw-semibold">${gunlukMetinEsc(malzAd)}</div>${dozajIhtiyacHtml}</div>
+        <span class="fw-bold text-success flex-shrink-0">${receteParaFormat(satirMaliyet.toplam)}</span>
       </div>
-      <div class="px-2 pb-2 border-top bg-white">${planHtml}</div>
+      ${planHtml}
     </div>`;
   }
 
-  return `<div class="recete-kalem border rounded mb-2 shadow-sm" data-recete-satir="${satirKey}">
-    <div class="recete-kalem-ust d-flex align-items-center flex-wrap gap-2 px-2 py-2 bg-light">
-      ${kalemBaslik}
-      ${maliyetBadge}
-      <button type="button" class="btn btn-sm btn-outline-secondary btn-dozaj py-0 px-2" data-bs-toggle="collapse" data-bs-target="#${detayId}" aria-expanded="${opts.editable ? 'true' : 'false'}" title="Verilecek ambalajlar ve fiyatlar">
-        <i class="fa-solid fa-box me-1"></i>Ambalaj / fiyat
-      </button>
-      ${silBtn}
+  return `<div class="recete-fatura-kalem recete-urun-cerceve mb-3 overflow-hidden" data-recete-satir="${satirKey}">
+    <div class="recete-fatura-kalem-ust d-flex justify-content-between align-items-start gap-2 px-3 py-2 bg-light border-bottom">
+      <div class="min-w-0 flex-grow-1">
+        <div class="fw-semibold text-dark fs-6">${gunlukMetinEsc(malzAd)}</div>
+        ${dozajIhtiyacHtml}
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <span class="fw-bold text-success">${receteParaFormat(satirMaliyet.toplam)}</span>
+        ${silBtn}
+      </div>
     </div>
-    <div class="collapse${opts.editable ? ' show' : ''}" id="${detayId}">
-      <div class="px-2 py-2 border-top bg-white">${planHtml}</div>
-    </div>
+    ${secimRadio}
+    ${planHtml}
   </div>`;
 }
 
-function receteKalemNotMetni(m, opts, birim, stokParca) {
-  const b = birim || m.birim || 'Lt';
-  const tarimUrun = gunlukMetinEsc(opts.tarimUrunAdi || receteCtx?.urunAdi || m.tarimUrunAdi || '');
-  const parcalar = [];
-  if (tarimUrun) parcalar.push(tarimUrun);
-  if (m.miktarDekar != null) {
-    parcalar.push(`${m.miktarDekar} ${b}/da`);
-    parcalar.push(`ihtiyaç ${m.toplamIhtiyac} ${b}`);
-    parcalar.push(`${m.dekar} da`);
-  } else {
-    parcalar.push(`toplam ${m.toplamIhtiyac} ${b}`);
-  }
-  if (stokParca) parcalar.push(`stok: ${stokParca}`);
-  return parcalar.join(' · ');
+function receteKalemNotMetni(m, opts, birim) {
+  return receteKalemIhtiyacNotu(m, birim);
 }
 
 function receteOzetMetin() {
@@ -405,11 +488,19 @@ async function musteriReceteSolListeYukle(seciliID) {
       const tarih = r.Tarih ? new Date(r.Tarih).toLocaleDateString('tr-TR') : '—';
       const aktif = Number(seciliID) === Number(r.ReceteID) ? ' active' : '';
       const satildi = r.SatisYapildi ? '<span class="badge bg-primary mt-1">Satış ✓</span>' : '';
+      const detaySatir = receteNotListeDetayHtml(r.Notlar);
       return `<button type="button" class="list-group-item list-group-item-action${aktif}" data-recete-liste-id="${r.ReceteID}" onclick="musteriReceteKayitliGoster(${r.ReceteID})">
         <div class="d-flex justify-content-between align-items-start gap-1 flex-wrap">
           <strong class="small">${gunlukMetinEsc(r.TarimUrunAdi)}</strong>
-          <span class="badge bg-success">${r.Dekar} da</span>
+          <div class="d-flex align-items-center gap-1 flex-shrink-0">
+            <span class="badge bg-success">${r.Dekar} da</span>
+            <span class="recete-liste-aksiyon" onclick="event.stopPropagation()">
+              <button type="button" class="btn btn-outline-secondary" title="Görüntüle"
+                onclick="receteGoruntuleAc(${r.ReceteID})"><i class="fa-solid fa-eye"></i></button>
+            </span>
+          </div>
         </div>
+        ${detaySatir}
         <small class="text-muted d-block mt-1">${tarih} · ${r.KalemSayisi || 0} kalem</small>
         ${satildi}
       </button>`;
@@ -641,16 +732,18 @@ function receteSatirlarRender() {
     wrap.innerHTML = '<p class="text-muted small mb-0">Stoktan malzeme ekleyin (arama veya barkod).</p>';
     return;
   }
-  wrap.innerHTML = receteSatirlar.map((s) => receteMalzemeKartHtml(s, {
-    editable: true,
-    satirKey: s.key,
-    tarimUrunAdi: receteCtx?.urunAdi,
-  })).join('')
+  wrap.innerHTML = `<p class="small text-muted mb-2"><i class="fa-solid fa-receipt me-1"></i>Her malzeme kalın çerçeve içinde: <strong>dozaj</strong> ve <strong>toplam ihtiyaç</strong>. Altta <strong>adet</strong> ve <strong>birim fiyat</strong> el ile değiştirilebilir.</p>`
+    + receteSatirlar.map((s) => receteMalzemeKartHtml(s, {
+      editable: true,
+      satirKey: s.key,
+      tarimUrunAdi: receteCtx?.urunAdi,
+    })).join('')
     + receteGenelToplamHtml();
 }
 
 function receteSatirFromData(data, secimTip) {
   const key = `r${Date.now()}_${data.malzemeGrupID || data.stokID}_${Math.random().toString(36).slice(2, 6)}`;
+  const oneriler = receteOnerileriDuzelt(data.oneriler);
   return {
     key,
     stokID: data.stokID,
@@ -662,8 +755,8 @@ function receteSatirFromData(data, secimTip) {
     dekar: data.dekar,
     toplamIhtiyac: data.toplamIhtiyac,
     ambalajlar: data.ambalajlar,
-    oneriler: data.oneriler,
-    secimTip: secimTip || receteVarsayilanSecimTip(data.oneriler),
+    oneriler,
+    secimTip: secimTip || receteVarsayilanSecimTip(oneriler),
   };
 }
 
@@ -751,10 +844,15 @@ async function receteKayitliDuzenlemeAc(receteID, opts) {
   await musteriReceteCalismaBaslat(mid, musteriAd, uid, dekar, urunAdi);
   receteDuzenlemeReceteID = rid;
   receteAktifKayitliID = rid;
-  receteSatirlar = data.satirlar.map((row) => receteSatirKayitliSatirdan(row, receteBaslik));
-  const notlar = document.getElementById('musteriReceteNotlar');
-  if (notlar) notlar.value = r.Notlar || '';
+  const satirlarKayit = data.satirlar.map((row) => receteSatirKayitliSatirdan(row, receteBaslik));
+  receteSatirlar = [];
+  for (const s of satirlarKayit) {
+    const yeniden = await receteSatirYenidenHesapla(s, s.toplamIhtiyac);
+    receteSatirlar.push(yeniden || s);
+  }
+  receteTarlaFormDoldur('musteriRecete', receteNotlarParcala(r.Notlar));
   receteSolListeAktif(rid);
+  musteriRecetePanelEtiketGuncelle();
   receteSatirlarRender();
 }
 
@@ -900,6 +998,7 @@ async function musteriReceteModalAc() {
   const sagDetay = document.getElementById('musteriReceteSagDetay');
   if (sagDetay) sagDetay.innerHTML = '';
 
+  receteTarlaFormTemizle('musteriRecete');
   musteriReceteSagPanelGoster('bos');
   await receteStokCacheYukle();
   await musteriReceteSolListeYukle(null);
@@ -918,7 +1017,98 @@ async function musteriReceteYeniModalAc() {
   modal.show();
 }
 
-async function musteriReceteCalismaBaslat(musteriID, musteriAd, uid, dekar, urunAdi) {
+/** Kayıtlı reçete listesinde tarla / konum detayı (Notlar alanı). */
+function receteNotListeDetayHtml(notlar) {
+  const metin = String(notlar || '').trim();
+  if (!metin) return '';
+  const satirlar = metin.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  const tam = gunlukMetinEsc(metin);
+  const icerik = satirlar.map((s) => gunlukMetinEsc(s)).join('<br>');
+  return `<div class="recete-liste-detay small text-muted mt-1" title="${tam}">
+    <i class="fa-solid fa-map-location-dot me-1 opacity-75"></i><span>${icerik}</span>
+  </div>`;
+}
+
+function receteTarlaNotBirlestir(tarla) {
+  const t = tarla || {};
+  const parcalar = [];
+  if (String(t.tarlaAdi || '').trim()) parcalar.push(`Tarla: ${String(t.tarlaAdi).trim()}`);
+  const konum = [];
+  if (String(t.mevki || '').trim()) konum.push(`Mevkii: ${String(t.mevki).trim()}`);
+  if (String(t.ada || '').trim()) konum.push(`Ada: ${String(t.ada).trim()}`);
+  if (String(t.parsel || '').trim()) konum.push(`Parsel: ${String(t.parsel).trim()}`);
+  if (konum.length) parcalar.push(konum.join(' · '));
+  if (String(t.ozelAciklama || '').trim()) parcalar.push(String(t.ozelAciklama).trim());
+  return parcalar.join('\n').trim().substring(0, 500);
+}
+
+function receteNotlarParcala(notlar) {
+  const metin = String(notlar || '').trim();
+  const out = { tarlaAdi: '', mevki: '', ada: '', parsel: '', ozelAciklama: '' };
+  if (!metin) return out;
+  const satirlar = metin.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  const serbest = [];
+  for (const s of satirlar) {
+    const tarlaM = s.match(/^Tarla:\s*(.+)$/i);
+    if (tarlaM) {
+      out.tarlaAdi = tarlaM[1].trim();
+      continue;
+    }
+    if (/Mevkii:|Ada:|Parsel:/i.test(s)) {
+      const mevkiM = s.match(/Mevkii:\s*([^·]+)/i);
+      const adaM = s.match(/Ada:\s*([^·]+)/i);
+      const parselM = s.match(/Parsel:\s*([^·]+)/i);
+      if (mevkiM) out.mevki = mevkiM[1].trim();
+      if (adaM) out.ada = adaM[1].trim();
+      if (parselM) out.parsel = parselM[1].trim();
+      continue;
+    }
+    serbest.push(s);
+  }
+  if (serbest.length) out.ozelAciklama = serbest.join('\n');
+  else if (!out.tarlaAdi && !out.mevki && !out.ada && !out.parsel) out.ozelAciklama = metin;
+  return out;
+}
+
+function receteTarlaFormDoldur(prefix, tarla) {
+  const t = tarla || {};
+  const set = (suffix, val) => {
+    const el = document.getElementById(`${prefix}${suffix}`);
+    if (el) el.value = val || '';
+  };
+  set('TarlaAdi', t.tarlaAdi);
+  set('Mevki', t.mevki);
+  set('Ada', t.ada);
+  set('Parsel', t.parsel);
+  set('Aciklama', t.ozelAciklama);
+}
+
+function receteTarlaFormTemizle(prefix) {
+  receteTarlaFormDoldur(prefix, {});
+}
+
+function receteTarlaFormOku(prefix) {
+  const get = (suffix) => document.getElementById(`${prefix}${suffix}`)?.value || '';
+  return receteTarlaNotBirlestir({
+    tarlaAdi: get('TarlaAdi'),
+    mevki: get('Mevki'),
+    ada: get('Ada'),
+    parsel: get('Parsel'),
+    ozelAciklama: get('Aciklama'),
+  });
+}
+
+function receteKayitNotDegeri() {
+  return receteTarlaFormOku('musteriRecete');
+}
+
+function musteriRecetePanelEtiketGuncelle() {
+  const el = document.getElementById('musteriRecetePanelEtiket');
+  if (!el) return;
+  el.textContent = receteDuzenlemeReceteID ? 'Reçete düzenleme' : 'Yeni reçete';
+}
+
+async function musteriReceteCalismaBaslat(musteriID, musteriAd, uid, dekar, urunAdi, baslangicNotlari) {
   const mid = Number(musteriID);
   if (!mid) return alert('Müşteri seçin.');
   if (!uid) return alert('Tarım ürünü seçin.');
@@ -927,12 +1117,14 @@ async function musteriReceteCalismaBaslat(musteriID, musteriAd, uid, dekar, urun
   aktifMusteriDetayID = mid;
   const ad = String(musteriAd || 'Müşteri').trim();
 
+  const tarlaNot = String(baslangicNotlari || '').trim();
   receteCtx = {
     musteriID: mid,
     musteriAd: ad,
     tarimUrunID: uid,
     dekar,
     urunAdi: urunAdi || '',
+    ...(tarlaNot ? { tarlaNot } : {}),
   };
   receteSatirlar = [];
   receteKayitliGoruntuleme = null;
@@ -947,10 +1139,10 @@ async function musteriReceteCalismaBaslat(musteriID, musteriAd, uid, dekar, urun
   const dCal = document.getElementById('musteriReceteDekarCalisma');
   if (dCal) dCal.value = String(dekar);
 
-  const notlar = document.getElementById('musteriReceteNotlar');
-  if (notlar) notlar.value = '';
+  receteTarlaFormDoldur('musteriRecete', receteNotlarParcala(tarlaNot));
 
   musteriReceteSagPanelGoster('calisma');
+  musteriRecetePanelEtiketGuncelle();
   musteriReceteOzetBarGuncelle();
   receteSatirlarRender();
   setTimeout(() => document.getElementById('musteriReceteArama')?.focus(), 250);
@@ -979,9 +1171,9 @@ async function musteriReceteDevam() {
 }
 
 function ozetReceteKayitliListeAktif(receteID) {
-  ozetReceteSeciliKayitliID = receteID != null ? Number(receteID) : null;
+  ozetReceteListeVurguID = receteID != null ? Number(receteID) : null;
   document.querySelectorAll('[data-ozet-recete-id]').forEach((el) => {
-    el.classList.toggle('active', Number(el.dataset.ozetReceteId) === ozetReceteSeciliKayitliID);
+    el.classList.toggle('active', Number(el.dataset.ozetReceteId) === ozetReceteListeVurguID);
   });
 }
 
@@ -1001,20 +1193,24 @@ async function ozetReceteKayitliListeYukle() {
     }
     liste.innerHTML = `<div class="list-group list-group-flush">${ozetReceteKayitliSatirlari.map((r) => {
       const tarih = r.Tarih ? new Date(r.Tarih).toLocaleDateString('tr-TR') : '—';
-      const aktif = Number(ozetReceteSeciliKayitliID) === Number(r.ReceteID) ? ' active' : '';
+      const aktif = Number(ozetReceteListeVurguID) === Number(r.ReceteID) ? ' active' : '';
       const musAd = gunlukMetinEsc(r.MusteriAd || 'Müşteri');
       const urun = gunlukMetinEsc(r.TarimUrunAdi || '—');
+      const detaySatir = receteNotListeDetayHtml(r.Notlar);
       return `<div class="list-group-item list-group-item-action${aktif} py-2 px-2" data-ozet-recete-id="${r.ReceteID}" role="button"
           onclick="ozetReceteKayitliSec(${r.ReceteID})">
         <div class="d-flex justify-content-between align-items-start gap-2">
           <div class="min-w-0 flex-grow-1">
             <div class="small fw-semibold text-truncate">${musAd}</div>
             <div class="small text-secondary text-truncate">${urun}</div>
+            ${detaySatir}
             <small class="text-muted">${tarih} · ${r.KalemSayisi || 0} kalem</small>
           </div>
           <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
             <span class="badge bg-success">${r.Dekar} da</span>
             <div class="d-flex gap-1 ozet-recete-aksiyon" onclick="event.stopPropagation()">
+              <button type="button" class="btn btn-outline-secondary" title="Görüntüle"
+                onclick="receteGoruntuleAc(${r.ReceteID})"><i class="fa-solid fa-eye"></i></button>
               <button type="button" class="btn btn-outline-primary" title="Düzenle"
                 onclick="ozetReceteKayitliDuzenle(${r.ReceteID})"><i class="fa-solid fa-pen"></i></button>
               <button type="button" class="btn btn-outline-danger" title="Sil"
@@ -1024,7 +1220,7 @@ async function ozetReceteKayitliListeYukle() {
         </div>
       </div>`;
     }).join('')}</div>`;
-    if (ozetReceteSeciliKayitliID != null) ozetReceteKayitliListeAktif(ozetReceteSeciliKayitliID);
+    if (ozetReceteListeVurguID != null) ozetReceteKayitliListeAktif(ozetReceteListeVurguID);
     return ozetReceteKayitliSatirlari;
   } catch (_) {
     liste.innerHTML = '<p class="text-danger small mb-0">Liste alınamadı.</p>';
@@ -1032,25 +1228,37 @@ async function ozetReceteKayitliListeYukle() {
   }
 }
 
+/** Soldaki listede yalnızca vurgular; sağdaki yeni reçete formunu doldurmaz. */
 function ozetReceteKayitliSec(receteID) {
-  const r = ozetReceteKayitliSatirlari.find((x) => Number(x.ReceteID) === Number(receteID));
-  if (!r) return;
-  ozetReceteSeciliKayitliID = Number(receteID);
   ozetReceteKayitliListeAktif(receteID);
-  ozetReceteSagBaslikGuncelle('duzenle');
-  const m = (window._musteriListeCache || []).find((x) => Number(x.MusteriID) === Number(r.MusteriID));
-  if (m) ozetReceteMusteriSec(m);
-  const uidSel = document.getElementById('ozetReceteUrunID');
-  if (uidSel && r.TarimUrunID) uidSel.value = String(r.TarimUrunID);
-  const dekarInp = document.getElementById('ozetReceteDekar');
-  if (dekarInp) dekarInp.value = String(r.Dekar);
 }
 
 async function ozetReceteKayitliDuzenle(receteID) {
-  const r = ozetReceteKayitliSatirlari.find((x) => Number(x.ReceteID) === Number(receteID));
-  if (r) ozetReceteKayitliSec(receteID);
-  ozetReceteSeciliKayitliID = Number(receteID);
-  await ozetReceteHizliBasla();
+  const rid = Number(receteID);
+  if (!rid) return;
+
+  ozetReceteHizliDonus = true;
+  const hizliEl = document.getElementById('ozetReceteHizliModal');
+  if (hizliEl) bootstrap.Modal.getInstance(hizliEl)?.hide();
+
+  await receteStokCacheYukle();
+  const r = ozetReceteKayitliSatirlari.find((x) => Number(x.ReceteID) === rid);
+  const receteEl = document.getElementById('musteriReceteModal');
+
+  if (!receteEl?.classList.contains('show')) {
+    receteKayitliGoruntuleme = null;
+    const sagDetay = document.getElementById('musteriReceteSagDetay');
+    if (sagDetay) sagDetay.innerHTML = '';
+    musteriReceteSagPanelGoster('bos');
+    if (r) aktifMusteriDetayID = Number(r.MusteriID);
+    await musteriReceteSolListeYukle(rid);
+    if (typeof musteriSatisSepetBadgeGuncelle === 'function') musteriSatisSepetBadgeGuncelle();
+    await musteriAltModalAc(receteEl);
+  } else if (r) {
+    aktifMusteriDetayID = Number(r.MusteriID);
+  }
+
+  await receteKayitliDuzenlemeAc(rid);
 }
 
 async function ozetReceteKayitliSil(receteID) {
@@ -1066,8 +1274,9 @@ async function ozetReceteKayitliSil(receteID) {
       alert('Silinemedi.');
       return;
     }
-    if (Number(ozetReceteSeciliKayitliID) === Number(receteID)) {
-      ozetReceteYeniFormTemizle();
+    if (Number(ozetReceteListeVurguID) === Number(receteID)) {
+      ozetReceteListeVurguID = null;
+      ozetReceteKayitliListeAktif(null);
     }
     await ozetReceteKayitliListeYukle();
   } catch (_) {
@@ -1075,44 +1284,22 @@ async function ozetReceteKayitliSil(receteID) {
   }
 }
 
-function ozetReceteSagBaslikGuncelle(mod) {
-  const baslik = document.getElementById('ozetReceteSagBaslik');
-  const aciklama = document.getElementById('ozetReceteSagAciklama');
-  const temizleBtn = document.getElementById('ozetReceteFormTemizleBtn');
-  if (mod === 'duzenle') {
-    if (baslik) baslik.textContent = 'Kayıtlı reçeteyi düzenle';
-    if (aciklama) {
-      aciklama.textContent = 'Bilgileri kontrol edin; Malzeme ekle veya soldaki kalem ile devam edin.';
-    }
-    temizleBtn?.classList.remove('d-none');
-  } else {
-    if (baslik) baslik.textContent = 'Yeni reçete oluştur';
-    if (aciklama) {
-      aciklama.textContent = 'Müşteri, tarım ürünü ve dekar girin; kayıtlı reçeteyi soldan düzenleyebilirsiniz.';
-    }
-    temizleBtn?.classList.add('d-none');
-  }
-}
-
 function ozetReceteYeniFormTemizle() {
-  const hid = document.getElementById('ozetReceteMusteriID');
-  const ara = document.getElementById('ozetReceteMusteriAra');
-  const ozet = document.getElementById('ozetReceteMusteriSecili');
-  const dekarInp = document.getElementById('ozetReceteDekar');
-  const uidSel = document.getElementById('ozetReceteUrunID');
+  const hid = document.getElementById('ozetReceteYeniMusteriID');
+  const ara = document.getElementById('ozetReceteYeniMusteriAra');
+  const ozet = document.getElementById('ozetReceteYeniMusteriSecili');
+  const dekarInp = document.getElementById('ozetReceteYeniDekar');
+  const uidSel = document.getElementById('ozetReceteYeniUrunID');
   if (hid) hid.value = '';
   if (ara) ara.value = '';
   if (ozet) ozet.classList.add('d-none');
   if (dekarInp) dekarInp.value = '';
   if (uidSel) uidSel.value = '';
-  ozetReceteSeciliKayitliID = null;
-  ozetReceteKayitliListeAktif(null);
+  receteTarlaFormTemizle('ozetReceteYeni');
   ozetReceteMusteriSonuclariniGizle();
-  ozetReceteSagBaslikGuncelle('yeni');
 }
 
 async function ozetReceteHizliModalGeriAc() {
-  ozetReceteYeniFormTemizle();
   await ozetReceteKayitliListeYukle();
   const el = document.getElementById('ozetReceteHizliModal');
   if (!el) return;
@@ -1121,7 +1308,7 @@ async function ozetReceteHizliModalGeriAc() {
 }
 
 function ozetReceteMusteriSonuclariniGizle() {
-  const el = document.getElementById('ozetReceteMusteriSonuclari');
+  const el = document.getElementById('ozetReceteYeniMusteriSonuclari');
   if (el) el.classList.add('d-none');
 }
 
@@ -1141,9 +1328,9 @@ function ozetReceteMusteriFiltrele(q) {
 
 function ozetReceteMusteriSec(m) {
   if (!m) return;
-  const hid = document.getElementById('ozetReceteMusteriID');
-  const ara = document.getElementById('ozetReceteMusteriAra');
-  const ozet = document.getElementById('ozetReceteMusteriSecili');
+  const hid = document.getElementById('ozetReceteYeniMusteriID');
+  const ara = document.getElementById('ozetReceteYeniMusteriAra');
+  const ozet = document.getElementById('ozetReceteYeniMusteriSecili');
   if (hid) hid.value = String(m.MusteriID);
   const ad = typeof musteriGorunenAd === 'function' ? musteriGorunenAd(m) : (m.AdSoyad || 'Müşteri');
   if (ara) ara.value = ad;
@@ -1152,21 +1339,16 @@ function ozetReceteMusteriSec(m) {
     ozet.classList.remove('d-none');
   }
   ozetReceteMusteriSonuclariniGizle();
-  setTimeout(() => document.getElementById('ozetReceteUrunID')?.focus(), 80);
+  setTimeout(() => document.getElementById('ozetReceteYeniUrunID')?.focus(), 80);
 }
 
 function ozetReceteMusteriAraGuncelle(deger) {
-  const sonuc = document.getElementById('ozetReceteMusteriSonuclari');
-  const hid = document.getElementById('ozetReceteMusteriID');
-  const ozet = document.getElementById('ozetReceteMusteriSecili');
+  const sonuc = document.getElementById('ozetReceteYeniMusteriSonuclari');
+  const hid = document.getElementById('ozetReceteYeniMusteriID');
+  const ozet = document.getElementById('ozetReceteYeniMusteriSecili');
   if (!sonuc) return;
   if (hid) hid.value = '';
   if (ozet) ozet.classList.add('d-none');
-  if (!String(deger || '').trim()) {
-    ozetReceteSeciliKayitliID = null;
-    ozetReceteKayitliListeAktif(null);
-    ozetReceteSagBaslikGuncelle('yeni');
-  }
 
   const filtreli = ozetReceteMusteriFiltrele(deger);
   sonuc.innerHTML = '';
@@ -1199,32 +1381,51 @@ async function ozetReceteOlusturAc() {
 
   const listeAra = document.getElementById('ozetReceteListeAra');
   if (listeAra) listeAra.value = '';
-  ozetReceteYeniFormTemizle();
+  ozetReceteListeVurguID = null;
 
-  await tarimUrunSelectDoldur('ozetReceteUrunID');
   await ozetReceteKayitliListeYukle();
 
   const el = document.getElementById('ozetReceteHizliModal');
   if (!el) return;
-  const modal = bootstrap.Modal.getOrCreateInstance(el);
-  modal.show();
-  setTimeout(() => ara?.focus(), 200);
+  bootstrap.Modal.getOrCreateInstance(el).show();
 }
 
-async function ozetReceteHizliBasla() {
-  const mid = Number(document.getElementById('ozetReceteMusteriID')?.value);
-  const uid = Number(document.getElementById('ozetReceteUrunID')?.value);
-  const dekar = parseFloat(document.getElementById('ozetReceteDekar')?.value);
+function ozetReceteYeniDekarFocus(el) {
+  if (!el) return;
+  if (el.value === '10' || el.value === 10) {
+    el.value = '';
+    return;
+  }
+  if (el.value !== '') el.select();
+}
+
+async function ozetReceteYeniModalAc() {
+  if (typeof hizliSatisMusteriListesiniHazirla === 'function') await hizliSatisMusteriListesiniHazirla();
+  ozetReceteYeniFormTemizle();
+  await tarimUrunSelectDoldur('ozetReceteYeniUrunID');
+  const yeniEl = document.getElementById('ozetReceteYeniModal');
+  if (!yeniEl) return;
+  bootstrap.Modal.getOrCreateInstance(yeniEl).show();
+  setTimeout(() => document.getElementById('ozetReceteYeniMusteriAra')?.focus(), 200);
+}
+
+async function ozetReceteYeniBasla() {
+  const mid = Number(document.getElementById('ozetReceteYeniMusteriID')?.value);
+  const uid = Number(document.getElementById('ozetReceteYeniUrunID')?.value);
+  const dekar = parseFloat(document.getElementById('ozetReceteYeniDekar')?.value);
   if (!mid) return alert('Müşteri seçin (arama kutusundan tıklayın).');
   if (!uid) return alert('Tarım ürünü seçin.');
   if (!Number.isFinite(dekar) || dekar <= 0) return alert('Geçerli bir dekar girin.');
 
-  const sel = document.getElementById('ozetReceteUrunID');
+  const sel = document.getElementById('ozetReceteYeniUrunID');
   const urunAdi = sel?.selectedOptions?.[0]?.textContent?.trim() || '';
   const m = (window._musteriListeCache || []).find((x) => Number(x.MusteriID) === mid);
   const musteriAd = m && typeof musteriGorunenAd === 'function' ? musteriGorunenAd(m) : 'Müşteri';
 
-  const duzenleId = ozetReceteSeciliKayitliID ? Number(ozetReceteSeciliKayitliID) : null;
+  const tarlaNot = receteTarlaFormOku('ozetReceteYeni');
+
+  const yeniEl = document.getElementById('ozetReceteYeniModal');
+  if (yeniEl) bootstrap.Modal.getInstance(yeniEl)?.hide();
 
   ozetReceteHizliDonus = true;
   const hizliEl = document.getElementById('ozetReceteHizliModal');
@@ -1233,29 +1434,22 @@ async function ozetReceteHizliBasla() {
   await receteStokCacheYukle();
   const receteEl = document.getElementById('musteriReceteModal');
   if (!receteEl?.classList.contains('show')) {
-    if (!duzenleId) {
-      receteSatirlar = [];
-      receteKayitliGoruntuleme = null;
-      receteAktifKayitliID = null;
-      receteDuzenlemeReceteID = null;
-    }
+    receteSatirlar = [];
+    receteKayitliGoruntuleme = null;
+    receteAktifKayitliID = null;
+    receteDuzenlemeReceteID = null;
     const sagDetay = document.getElementById('musteriReceteSagDetay');
     if (sagDetay) sagDetay.innerHTML = '';
     musteriReceteSagPanelGoster('bos');
     aktifMusteriDetayID = mid;
-    await musteriReceteSolListeYukle(duzenleId);
+    await musteriReceteSolListeYukle(null);
     if (typeof musteriSatisSepetBadgeGuncelle === 'function') musteriSatisSepetBadgeGuncelle();
     await musteriAltModalAc(receteEl);
   } else {
     aktifMusteriDetayID = mid;
   }
 
-  if (duzenleId) {
-    await receteKayitliDuzenlemeAc(duzenleId, { tarimUrunID: uid, dekar, urunAdi });
-    ozetReceteSeciliKayitliID = null;
-    return;
-  }
-  await musteriReceteCalismaBaslat(mid, musteriAd, uid, dekar, urunAdi);
+  await musteriReceteCalismaBaslat(mid, musteriAd, uid, dekar, urunAdi, tarlaNot);
 }
 
 async function musteriReceteKaydet() {
@@ -1298,7 +1492,7 @@ async function musteriReceteKaydet() {
         musteriID: receteCtx.musteriID,
         tarimUrunID: receteCtx.tarimUrunID,
         dekar: receteCtx.dekar,
-        notlar: document.getElementById('musteriReceteNotlar')?.value || '',
+        notlar: receteKayitNotDegeri(),
         kullanici: typeof aktifKullanici !== 'undefined' ? aktifKullanici : 'Sistem',
         satirlar,
         genelToplam,
@@ -1401,6 +1595,190 @@ function receteRaporGenelToplam(bloklar) {
     if (Number.isFinite(t) && t > 0) return Math.round(t * 100) / 100;
   }
   return Math.round(bloklar.reduce((acc, b) => acc + b.toplam, 0) * 100) / 100;
+}
+
+function receteGoruntuleMusteriAdBul(receteID, data) {
+  const rid = Number(receteID);
+  const oz = ozetReceteKayitliSatirlari.find((x) => Number(x.ReceteID) === rid);
+  if (oz?.MusteriAd) return String(oz.MusteriAd).trim();
+  const sol = receteSolListeSatirlari.find((x) => Number(x.ReceteID) === rid);
+  if (sol?.MusteriAd) return String(sol.MusteriAd).trim();
+  const panelAd = document.getElementById('musteriReceteMusteriAd')?.textContent?.trim();
+  if (panelAd) return panelAd;
+  if (data?.recete?.MusteriAd) return String(data.recete.MusteriAd).trim();
+  return '—';
+}
+
+function receteBloklariFromKayitData(data) {
+  const dekar = Number(data?.recete?.Dekar);
+  const satirlar = (data?.satirlar || []).map((row) => {
+    const plan = row.plan || [];
+    return {
+      grupAdi: row.UrunAdi,
+      miktarDekar: row.MiktarDekar,
+      birim: row.Birim || 'Lt',
+      toplamIhtiyac: row.ToplamIhtiyac,
+      dekar,
+      plan: plan.length ? { secim: plan } : null,
+      ambalajlar: plan.map((p) => ({ stokID: p.stokID, satisFiyati: p.satisFiyati })),
+    };
+  });
+  const bloklar = [];
+  for (const s of satirlar) {
+    const birim = s.birim || 'Lt';
+    const maliyet = recetePlanMaliyet(s.plan, s.ambalajlar);
+    if (!maliyet.kalemler.length) continue;
+    bloklar.push({
+      malzeme: s.grupAdi || '—',
+      birim,
+      ihtiyac: `${s.toplamIhtiyac} ${birim}`,
+      dozaj: s.miktarDekar != null ? `${s.miktarDekar} ${birim}/da` : null,
+      kalemler: maliyet.kalemler.map((k) => ({
+        ambalajMiktari: k.ambalajMiktari,
+        adet: k.adet,
+        birimFiyat: k.birimFiyat,
+        tutar: k.tutar,
+      })),
+      toplam: maliyet.toplam,
+    });
+  }
+  return bloklar;
+}
+
+function receteKayitGenelToplamHesapla(data, bloklar) {
+  let genelToplam = Number(data?.genelToplam);
+  if (!Number.isFinite(genelToplam) || genelToplam <= 0) {
+    genelToplam = (data?.satirlar || []).reduce((acc, row) => acc + receteKayitliSatirMaliyet(row), 0);
+  }
+  if (!Number.isFinite(genelToplam) || genelToplam <= 0) {
+    genelToplam = bloklar.reduce((acc, b) => acc + b.toplam, 0);
+  }
+  return Math.round(genelToplam * 100) / 100;
+}
+
+function receteGoruntuleRaporHtml(data, musteriAd) {
+  const r = data.recete || {};
+  const bloklar = receteBloklariFromKayitData(data);
+  const genelToplam = receteKayitGenelToplamHesapla(data, bloklar);
+  const tarih = r.Tarih ? new Date(r.Tarih).toLocaleString('tr-TR', { dateStyle: 'long', timeStyle: 'short' }) : '—';
+  const notHtml = receteNotListeDetayHtml(r.Notlar);
+  const notBlok = notHtml
+    ? `<div class="recete-gor-not">${notHtml}</div>`
+    : '';
+  const malzemeHtml = bloklar.length
+    ? bloklar.map((b) => {
+      const satirlar = b.kalemler.map((k) => `<tr>
+          <td>${k.adet} × ${k.ambalajMiktari} ${gunlukMetinEsc(b.birim)}</td>
+          <td class="text-center">${k.adet}</td>
+          <td class="text-end">${receteParaFormat(k.birimFiyat)}</td>
+          <td class="text-end fw-semibold">${receteParaFormat(k.tutar)}</td>
+        </tr>`).join('');
+      const alt = b.dozaj ? ` · ${gunlukMetinEsc(b.dozaj)}` : '';
+      return `<div class="recete-gor-malzeme">
+          <div class="recete-gor-malzeme-ust">
+            ${gunlukMetinEsc(b.malzeme)}
+            <small class="ms-1">— ${gunlukMetinEsc(b.ihtiyac)}${alt}</small>
+          </div>
+          <table class="table table-sm recete-gor-tablo mb-0">
+            <thead><tr>
+              <th>Ambalaj</th><th class="text-center" style="width:4rem">Adet</th>
+              <th class="text-end" style="width:6.5rem">Birim</th><th class="text-end" style="width:6.5rem">Tutar</th>
+            </tr></thead>
+            <tbody>${satirlar}</tbody>
+          </table>
+          <div class="recete-gor-malzeme-alt">Malzeme toplamı: <strong>${receteParaFormat(b.toplam)}</strong></div>
+        </div>`;
+    }).join('')
+    : '<p class="text-muted small mb-0">Ambalaj satırı yok.</p>';
+  const satisNot = r.SatisYapildi
+    ? '<div class="small text-primary mb-2"><i class="fa-solid fa-circle-check me-1"></i>Satış yapıldı</div>'
+    : '';
+  return `<div class="recete-gor-rapor">
+    ${satisNot}
+    <div class="recete-gor-ust">
+      <div class="recete-gor-meta">
+        <div><span class="text-muted">Müşteri</span><br><strong>${gunlukMetinEsc(musteriAd || '—')}</strong></div>
+        <div><span class="text-muted">Tarım ürünü</span><br><strong>${gunlukMetinEsc(r.TarimUrunAdi || '—')}</strong></div>
+        <div><span class="text-muted">Dekar</span><br><strong>${gunlukMetinEsc(String(r.Dekar ?? '—'))}</strong></div>
+        <div><span class="text-muted">Reçete no</span><br><strong>#${gunlukMetinEsc(String(r.ReceteID || '—'))}</strong></div>
+      </div>
+      <div class="small text-muted mt-2">${gunlukMetinEsc(tarih)} · ${bloklar.length} malzeme</div>
+    </div>
+    ${notBlok}
+    ${malzemeHtml}
+    <div class="recete-gor-genel">
+      <div class="text-muted small">Genel toplam</div>
+      <div class="tutar">${receteParaFormat(genelToplam)}</div>
+    </div>
+  </div>`;
+}
+
+async function receteGoruntuleAc(receteID) {
+  const rid = Number(receteID);
+  if (!rid) return;
+  const modalEl = document.getElementById('receteGoruntuleModal');
+  const body = document.getElementById('receteGoruntuleIcerik');
+  const duzenleBtn = document.getElementById('receteGoruntuleDuzenleBtn');
+  if (!modalEl || !body) return;
+  receteGoruntuleSonReceteID = rid;
+  receteGoruntuleCache = null;
+  body.innerHTML = '<p class="text-muted text-center py-4 mb-0">Yükleniyor…</p>';
+  if (duzenleBtn) duzenleBtn.classList.add('d-none');
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  try {
+    const res = await fetch(`/api/recete/${rid}`);
+    const data = await res.json();
+    if (!data.success) {
+      body.innerHTML = '<p class="text-danger small mb-0">Reçete bulunamadı.</p>';
+      return;
+    }
+    await receteStokCacheYukle();
+    const bloklar = receteBloklariFromKayitData(data);
+    data.genelToplam = receteKayitGenelToplamHesapla(data, bloklar);
+    receteGoruntuleCache = data;
+    const musteriAd = receteGoruntuleMusteriAdBul(rid, data);
+    body.innerHTML = receteGoruntuleRaporHtml(data, musteriAd);
+    if (duzenleBtn) duzenleBtn.classList.remove('d-none');
+  } catch (_) {
+    body.innerHTML = '<p class="text-danger small mb-0">Okuma hatası.</p>';
+  }
+}
+
+async function receteGoruntuleYazdir() {
+  if (!receteGoruntuleCache) return alert('Reçete yüklenmedi.');
+  const onceki = receteKayitliGoruntuleme;
+  const oncekiCtx = receteCtx;
+  try {
+    receteKayitliGoruntuleme = receteGoruntuleCache;
+    const rid = receteGoruntuleSonReceteID;
+    receteCtx = {
+      musteriID: receteGoruntuleCache.recete?.MusteriID || aktifMusteriDetayID,
+      musteriAd: receteGoruntuleMusteriAdBul(rid, receteGoruntuleCache),
+      tarimUrunID: receteGoruntuleCache.recete?.TarimUrunID,
+      dekar: Number(receteGoruntuleCache.recete?.Dekar),
+      urunAdi: receteGoruntuleCache.recete?.TarimUrunAdi,
+    };
+    await musteriReceteYazdir();
+  } finally {
+    receteKayitliGoruntuleme = onceki;
+    receteCtx = oncekiCtx;
+  }
+}
+
+async function receteGoruntuleDuzenle() {
+  const rid = receteGoruntuleSonReceteID;
+  if (!rid) return;
+  const modalEl = document.getElementById('receteGoruntuleModal');
+  if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+  const r = ozetReceteKayitliSatirlari.find((x) => Number(x.ReceteID) === rid)
+    || receteSolListeSatirlari.find((x) => Number(x.ReceteID) === rid);
+  if (r?.MusteriID) aktifMusteriDetayID = Number(r.MusteriID);
+  const receteEl = document.getElementById('musteriReceteModal');
+  if (receteEl && !receteEl.classList.contains('show')) {
+    await musteriAltModalAc(receteEl);
+    await musteriReceteSolListeYukle(rid);
+  }
+  await receteKayitliDuzenlemeAc(rid);
 }
 
 function receteRaporTabloGovdesi(bloklar) {
@@ -1575,50 +1953,14 @@ async function musteriReceteKayitliGoster(receteID) {
       dekar: Number(data.recete.Dekar),
       urunAdi: data.recete.TarimUrunAdi,
     };
-    let genelToplam = Number(data.genelToplam);
-    const kartlar = data.satirlar.map((row) => {
-      const plan = (row.plan || []).map((p) => ({
-        ...p,
-        urunAdi: p.urunAdi || receteStokUrunAdi(p.stokID, p),
-      }));
-      const ambalajlar = plan.map((p) => ({
-        stokID: p.stokID,
-        urunAdi: p.urunAdi,
-        satisFiyati: p.satisFiyati,
-        ambalajMiktari: p.ambalajMiktari,
-        mevcutMiktar: p.mevcutMiktar,
-      }));
-      const m = {
-        grupAdi: row.UrunAdi,
-        miktarDekar: row.MiktarDekar,
-        birim: row.Birim,
-        toplamIhtiyac: row.ToplamIhtiyac,
-        dekar: data.recete.Dekar,
-        tarimUrunAdi: data.recete.TarimUrunAdi,
-        ambalajlar,
-        oneriler: {},
-      };
-      if (plan.length) {
-        const t = plan.reduce((a, x) => a + x.adet * (x.ambalajMiktari || 0), 0);
-        m.oneriler.tamDenk = true;
-        m.oneriler.tamBolunmus = {
-          secim: plan,
-          adetToplam: plan.reduce((a, x) => a + x.adet, 0),
-          miktarToplam: Math.round(t * 1000) / 1000,
-          fire: Math.round((t - row.ToplamIhtiyac) * 1000) / 1000,
-          ihtiyac: row.ToplamIhtiyac,
-        };
-      }
-      return receteMalzemeKartHtml(m, { tarimUrunAdi: data.recete.TarimUrunAdi });
-    }).join('');
-    if (!Number.isFinite(genelToplam) || genelToplam <= 0) {
-      genelToplam = data.satirlar.reduce((acc, row) => acc + receteKayitliSatirMaliyet(row), 0);
-    }
+    const bloklar = receteBloklariFromKayitData(data);
+    const genelToplam = receteKayitGenelToplamHesapla(data, bloklar);
     data.genelToplam = genelToplam;
-    const not = data.recete.Notlar ? `<p class="small"><em>Not:</em> ${gunlukMetinEsc(data.recete.Notlar)}</p>` : '';
+    const kalemSayisi = (data.satirlar || []).length;
+    const not = receteNotListeDetayHtml(data.recete.Notlar);
     const tarih = data.recete.Tarih ? new Date(data.recete.Tarih).toLocaleString('tr-TR') : '—';
     const satisBadge = data.recete.SatisYapildi
-      ? `<div class="alert alert-primary py-2 small mb-2 mb-md-0"><i class="fa-solid fa-circle-check me-1"></i>Satış yapıldı${data.recete.SatisTarih ? ` — ${new Date(data.recete.SatisTarih).toLocaleString('tr-TR')}` : ''}</div>`
+      ? `<div class="alert alert-primary py-2 small mb-2"><i class="fa-solid fa-circle-check me-1"></i>Satış yapıldı${data.recete.SatisTarih ? ` — ${new Date(data.recete.SatisTarih).toLocaleString('tr-TR')}` : ''}</div>`
       : '';
     const sepeteEkleBtn = data.recete.SatisYapildi
       ? ''
@@ -1630,17 +1972,25 @@ async function musteriReceteKayitliGoster(receteID) {
         <div>
           <span class="badge bg-secondary-subtle text-secondary mb-1">Kayıtlı reçete</span>
           <h6 class="mb-0">#${receteID} · ${gunlukMetinEsc(data.recete.TarimUrunAdi)}</h6>
-          <small class="text-muted">${data.recete.Dekar} dekar · ${tarih}</small>
+          <small class="text-muted d-block">${data.recete.Dekar} dekar · ${tarih}</small>
+          <small class="text-muted">${kalemSayisi} malzeme · ${receteParaFormat(genelToplam)}</small>
           ${satisBadge}
         </div>
         <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-sm btn-success" onclick="receteGoruntuleAc(${receteID})">
+            <i class="fa-solid fa-eye me-1"></i>Görüntüle
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-success" onclick="receteKayitliDuzenlemeAc(${receteID})">
+            <i class="fa-solid fa-pen me-1"></i>Düzenle
+          </button>
           ${sepeteEkleBtn}
           <button type="button" class="btn btn-sm btn-outline-dark" onclick="musteriReceteYazdir()">
             <i class="fa-solid fa-print me-1"></i>Yazdır
           </button>
         </div>
       </div>
-      ${not}${kartlar}${receteGenelToplamHtml(genelToplam)}`;
+      ${not}
+      <p class="text-muted small mb-0">Detaylı rapor için <strong>Görüntüle</strong>ye tıklayın.</p>`;
   } catch (_) {
     detay.innerHTML = '<p class="text-danger small">Okuma hatası.</p>';
   }
