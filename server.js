@@ -3,6 +3,7 @@ const { ensureTedarikciTablolari } = require('./tedarikci-schema');
 const { ensureTemelTablolar } = require('./lib/temel-schema');
 const { ensureTarimSchema } = require('./lib/tarim-schema');
 const { ambalajOnerileri } = require('./lib/ambalaj-hesap');
+const { siviMiktarLt } = require('./lib/sivi-birim');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -1015,17 +1016,17 @@ async function malzemeGrupIdCoz(pool, body) {
   return ins.recordset[0]?.MalzemeGrupID ?? null;
 }
 
-async function dozajlariKaydet(pool, malzemeGrupID, dozajlar) {
+async function dozajlariTamamenKaydet(pool, malzemeGrupID, dozajlar) {
   if (!malzemeGrupID) return;
-  if (!Array.isArray(dozajlar) || dozajlar.length === 0) return;
   await pool.request()
     .input('GID', sql.Int, malzemeGrupID)
     .query('DELETE FROM UrunMalzemeDozaj WHERE MalzemeGrupID = @GID');
-  for (const d of dozajlar || []) {
+  if (!Array.isArray(dozajlar)) return;
+  for (const d of dozajlar) {
     const miktar = Number(d.miktarDekar ?? d.MiktarDekar);
     const uid = Number(d.tarimUrunID ?? d.TarimUrunID);
     if (!uid || !Number.isFinite(miktar) || miktar <= 0) continue;
-    const birim = String(d.birim || d.Birim || 'Lt').trim().substring(0, 10);
+    const birim = String(d.birim || d.Birim || 'Lt').trim().substring(0, 10) || 'Lt';
     await pool.request()
       .input('UID', sql.Int, uid)
       .input('GID', sql.Int, malzemeGrupID)
@@ -1036,6 +1037,37 @@ async function dozajlariKaydet(pool, malzemeGrupID, dozajlar) {
         VALUES (@UID, @GID, @Miktar, @Birim)
       `);
   }
+}
+
+/** Eski çağrılar: yalnızca dolu dozaj listesi gönderildiğinde tam kayıt. */
+async function dozajlariKaydet(pool, malzemeGrupID, dozajlar) {
+  if (!malzemeGrupID || !Array.isArray(dozajlar) || dozajlar.length === 0) return;
+  await dozajlariTamamenKaydet(pool, malzemeGrupID, dozajlar);
+}
+
+async function dozajTekSatirKaydet(pool, malzemeGrupID, tarimUrunID, miktarDekar, birim) {
+  const gid = Number(malzemeGrupID);
+  const uid = Number(tarimUrunID);
+  const miktar = Number(miktarDekar);
+  if (!gid || !uid || !Number.isFinite(miktar) || miktar <= 0) return false;
+  const b = String(birim || 'Lt').trim().substring(0, 10) || 'Lt';
+  await pool.request()
+    .input('GID', sql.Int, gid)
+    .input('UID', sql.Int, uid)
+    .query('DELETE FROM UrunMalzemeDozaj WHERE MalzemeGrupID = @GID AND TarimUrunID = @UID');
+  await pool.request()
+    .input('UID', sql.Int, uid)
+    .input('GID', sql.Int, gid)
+    .input('Miktar', sql.Decimal(18, 4), miktar)
+    .input('Birim', sql.NVarChar(10), b)
+    .query(`
+      INSERT INTO UrunMalzemeDozaj (TarimUrunID, MalzemeGrupID, MiktarDekar, Birim)
+      VALUES (@UID, @GID, @Miktar, @Birim)
+    `);
+  await pool.request()
+    .input('GID', sql.Int, gid)
+    .query('UPDATE MalzemeGruplari SET DozajGerekli = 1 WHERE MalzemeGrupID = @GID');
+  return true;
 }
 
 // --- Tanımlamalar: stok / ölçü birimleri ---
@@ -1287,6 +1319,7 @@ app.post('/api/malzeme-grup/stok-grupla', async (req, res) => {
       if (!gid) throw new Error('Grup oluşturulamadı.');
 
       const boyutlar = new Set();
+      const eskiGrupIdler = new Set();
       for (const it of items) {
         const stokID = Number(it.stokID);
         const ambM = Number(it.ambalajMiktari);
@@ -1302,7 +1335,8 @@ app.post('/api/malzeme-grup/stok-grupla', async (req, res) => {
           .input('SID', sql.Int, stokID)
           .query('SELECT StokID, MalzemeGrupID FROM Stok WHERE StokID = @SID');
         if (!chk.recordset.length) throw new Error('NOT_FOUND');
-        if (chk.recordset[0].MalzemeGrupID) throw new Error('ALREADY_GROUPED');
+        const eskiGid = Number(chk.recordset[0].MalzemeGrupID || 0);
+        if (eskiGid > 0) eskiGrupIdler.add(eskiGid);
 
         const urunAdi = malzemeStokUrunAdi(grupAdi, ambM, olcu);
         await new sql.Request(tx)
@@ -1315,6 +1349,20 @@ app.post('/api/malzeme-grup/stok-grupla', async (req, res) => {
             UPDATE Stok SET MalzemeGrupID = @GID, AmbalajMiktari = @Amb, OlcuBirimi = @Olcu, UrunAdi = @UrunAdi
             WHERE StokID = @SID
           `);
+      }
+      for (const eskiGid of eskiGrupIdler) {
+        if (eskiGid === gid) continue;
+        const kalan = await new sql.Request(tx)
+          .input('GID', sql.Int, eskiGid)
+          .query('SELECT COUNT(*) AS N FROM Stok WHERE MalzemeGrupID = @GID');
+        if (Number(kalan.recordset[0]?.N || 0) === 0) {
+          await new sql.Request(tx)
+            .input('GID', sql.Int, eskiGid)
+            .query('DELETE FROM UrunMalzemeDozaj WHERE MalzemeGrupID = @GID');
+          await new sql.Request(tx)
+            .input('GID', sql.Int, eskiGid)
+            .query('DELETE FROM MalzemeGruplari WHERE MalzemeGrupID = @GID');
+        }
       }
       await tx.commit();
       const kullanici = req.body?.kullanici || 'Sistem';
@@ -1330,9 +1378,6 @@ app.post('/api/malzeme-grup/stok-grupla', async (req, res) => {
       }
       if (inner.message === 'NOT_FOUND') {
         return res.status(404).json({ success: false, message: 'Stok satırı bulunamadı.' });
-      }
-      if (inner.message === 'ALREADY_GROUPED') {
-        return res.status(409).json({ success: false, message: 'Seçilen satırlardan biri zaten gruplanmış.' });
       }
       throw inner;
     }
@@ -1365,7 +1410,7 @@ app.get('/api/malzeme-grup/:id', async (req, res) => {
       .query(`
         SELECT StokID, UrunAdi, Barkod, AmbalajMiktari, OlcuBirimi, AlisFiyati, SatisFiyati,
           MevcutMiktar, Birim, KritikEsik, HedefEsik
-        FROM Stok WHERE MalzemeGrupID = @GID ORDER BY AmbalajMiktari DESC
+        FROM Stok WHERE MalzemeGrupID = @GID ORDER BY AmbalajMiktari ASC
       `);
     res.json({ success: true, grup: grup.recordset[0], ambalajlar: amb.recordset });
   } catch (err) {
@@ -1412,12 +1457,35 @@ app.put('/api/malzeme-grup/:id', async (req, res) => {
 app.put('/api/malzeme-grup/:id/dozaj', async (req, res) => {
   try {
     const gid = Number(req.params.id);
+    if (!gid) return res.status(400).json({ success: false, message: 'Malzeme grubu zorunlu.' });
     const pool = await poolPromise;
-    await dozajlariKaydet(pool, gid, req.body?.dozajlar || []);
+    await dozajlariTamamenKaydet(pool, gid, req.body?.dozajlar || []);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: 'Dozaj kaydedilemedi.' });
+  }
+});
+
+app.put('/api/malzeme-grup/:id/dozaj-satir', async (req, res) => {
+  try {
+    const gid = Number(req.params.id);
+    const uid = Number(req.body?.tarimUrunID ?? req.body?.TarimUrunID);
+    const miktar = Number(req.body?.miktarDekar ?? req.body?.MiktarDekar);
+    const birim = String(req.body?.birim || req.body?.Birim || 'Lt').trim() || 'Lt';
+    if (!gid || !uid) {
+      return res.status(400).json({ success: false, message: 'Malzeme ve tarım ürünü zorunlu.' });
+    }
+    if (!Number.isFinite(miktar) || miktar <= 0) {
+      return res.status(400).json({ success: false, message: 'Geçerli dozaj miktarı girin.' });
+    }
+    const pool = await poolPromise;
+    const ok = await dozajTekSatirKaydet(pool, gid, uid, miktar, birim);
+    if (!ok) return res.status(400).json({ success: false, message: 'Dozaj kaydedilemedi.' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Dozaj kaydedilemedi.' });
   }
 });
 
@@ -1593,7 +1661,8 @@ async function receteMalzemeSatiriHesapla(pool, malzemeGrupID, tarimUrunID, deka
     if (dozRs.recordset.length) {
       miktarDekar = Number(dozRs.recordset[0].MiktarDekar);
       birim = String(dozRs.recordset[0].Birim || birim).trim() || birim;
-      toplamIhtiyac = Math.round(miktarDekar * dekar * 1000) / 1000;
+      const toplamDozajBirimde = Math.round(miktarDekar * dekar * 1000) / 1000;
+      toplamIhtiyac = toplamDozajBirimde;
     }
   }
 
@@ -1629,6 +1698,8 @@ async function receteMalzemeSatiriHesapla(pool, malzemeGrupID, tarimUrunID, deka
     urunAdi: row.UrunAdi,
     barkod: row.Barkod,
     ambalajMiktari: Number(row.AmbalajMiktari),
+    ambalajMiktariLt: siviMiktarLt(row.AmbalajMiktari, row.OlcuBirimi),
+    olcuBirimi: String(row.OlcuBirimi || 'Lt').trim() || 'Lt',
     mevcutMiktar: Number(row.MevcutMiktar || 0),
     satisFiyati: Number(row.SatisFiyati || 0),
     alisFiyati: Number(row.AlisFiyati || 0),
@@ -1640,11 +1711,19 @@ async function receteMalzemeSatiriHesapla(pool, malzemeGrupID, tarimUrunID, deka
       urunAdi: s.UrunAdi,
       barkod: s.Barkod,
       ambalajMiktari: Number(s.AmbalajMiktari),
+      ambalajMiktariLt: siviMiktarLt(s.AmbalajMiktari, s.OlcuBirimi),
+      olcuBirimi: String(s.OlcuBirimi || 'Lt').trim() || 'Lt',
       mevcutMiktar: Number(s.MevcutMiktar || 0),
       satisFiyati: Number(s.SatisFiyati || 0),
       alisFiyati: Number(s.AlisFiyati || 0),
     });
   }
+
+  const toplamIhtiyacLt = siviMiktarLt(toplamIhtiyac, birim);
+  const oneriler = ambalajOnerileri(
+    toplamIhtiyacLt,
+    variants.map((v) => ({ ...v, ambalajMiktari: v.ambalajMiktariLt })),
+  );
 
   return {
     success: true,
@@ -1657,8 +1736,9 @@ async function receteMalzemeSatiriHesapla(pool, malzemeGrupID, tarimUrunID, deka
     birim,
     dekar,
     toplamIhtiyac,
+    toplamIhtiyacLt,
     ambalajlar: variants,
-    oneriler: ambalajOnerileri(toplamIhtiyac, variants),
+    oneriler,
   };
 }
 
@@ -1964,7 +2044,9 @@ app.post('/api/recete/hesapla', async (req, res) => {
       `);
     const malzemeler = [];
     for (const row of dozRs.recordset) {
-      const ihtiyac = Number(row.MiktarDekar) * dekar;
+      const birim = String(row.Birim || 'Lt').trim() || 'Lt';
+      const ihtiyac = Math.round(Number(row.MiktarDekar) * dekar * 1000) / 1000;
+      const ihtiyacLt = siviMiktarLt(ihtiyac, birim);
       const ambRs = await pool.request()
         .input('GID', sql.Int, row.MalzemeGrupID)
         .query(`
@@ -1976,20 +2058,25 @@ app.post('/api/recete/hesapla', async (req, res) => {
         urunAdi: s.UrunAdi,
         barkod: s.Barkod,
         ambalajMiktari: Number(s.AmbalajMiktari),
+        ambalajMiktariLt: siviMiktarLt(s.AmbalajMiktari, s.OlcuBirimi),
         mevcutMiktar: Number(s.MevcutMiktar || 0),
         satisFiyati: Number(s.SatisFiyati || 0),
         alisFiyati: Number(s.AlisFiyati || 0),
-        birim: String(s.OlcuBirimi || row.Birim || 'Lt').trim() || 'Lt',
+        birim: String(s.OlcuBirimi || birim).trim() || birim,
       }));
       malzemeler.push({
         malzemeGrupID: row.MalzemeGrupID,
         grupAdi: row.GrupAdi,
-        birim: row.Birim,
+        birim,
         miktarDekar: Number(row.MiktarDekar),
         dekar,
-        toplamIhtiyac: Math.round(ihtiyac * 1000) / 1000,
+        toplamIhtiyac: ihtiyac,
+        toplamIhtiyacLt: ihtiyacLt,
         ambalajlar: variants,
-        oneriler: ambalajOnerileri(ihtiyac, variants),
+        oneriler: ambalajOnerileri(
+          ihtiyacLt,
+          variants.map((v) => ({ ...v, ambalajMiktari: v.ambalajMiktariLt })),
+        ),
       });
     }
     const urunRs = await pool.request()
@@ -2351,7 +2438,9 @@ app.put('/api/stok/:id', async (req, res) => {
     if (result.rowsAffected[0] === 0) {
       return res.status(404).send('Güncellenecek ürün bulunamadı.');
     }
-    if (grupId) await dozajlariKaydet(pool, grupId, dozajlar);
+    if (grupId && Array.isArray(dozajlar) && dozajlar.length > 0) {
+      await dozajlariTamamenKaydet(pool, grupId, dozajlar);
+    }
     res.send('Stok başarıyla güncellendi.');
   } catch (err) {
     console.error(err);

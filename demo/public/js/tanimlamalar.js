@@ -28,16 +28,35 @@ function stokBirimListeAktif() {
   return liste.length ? liste : STOK_BIRIM_VARSAYILAN;
 }
 
+function stokBirimKoduNorm(kod) {
+  const k = String(kod || '').trim();
+  if (!k) return '';
+  const liste = stokBirimListeAktif();
+  const kl = k.toLocaleLowerCase('tr-TR');
+  const hit = liste.find((b) => String(b.BirimKodu || '').trim().toLocaleLowerCase('tr-TR') === kl);
+  if (hit) return String(hit.BirimKodu).trim();
+  const alias = { litre: 'Lt', l: 'Lt', lt: 'Lt', kilogram: 'Kg', kg: 'Kg', ad: 'Adet', adet: 'Adet' };
+  const canon = alias[kl];
+  if (canon && liste.some((b) => String(b.BirimKodu || '').trim() === canon)) return canon;
+  return k;
+}
+
+function stokBirimKoduEslesir(a, b) {
+  return stokBirimKoduNorm(a) === stokBirimKoduNorm(b)
+    || String(a || '').trim().toLocaleLowerCase('tr-TR') === String(b || '').trim().toLocaleLowerCase('tr-TR');
+}
+
 function stokBirimSelectOptionsHtml(secili) {
   const opts = stokBirimListeAktif();
+  const sec = stokBirimKoduNorm(secili);
   let html = opts.map((b) => {
-    const kod = b.BirimKodu;
-    const sel = String(secili || '') === kod ? ' selected' : '';
+    const kod = String(b.BirimKodu || '').trim();
+    const sel = sec && stokBirimKoduEslesir(sec, kod) ? ' selected' : '';
     const lbl = b.Aciklama ? `${kod} — ${b.Aciklama}` : kod;
     return `<option value="${gunlukMetinEsc(kod)}"${sel}>${gunlukMetinEsc(lbl)}</option>`;
   }).join('');
-  if (secili && !opts.some((b) => b.BirimKodu === secili)) {
-    html += `<option value="${gunlukMetinEsc(secili)}" selected>${gunlukMetinEsc(secili)} (eski)</option>`;
+  if (sec && !opts.some((b) => stokBirimKoduEslesir(sec, b.BirimKodu))) {
+    html += `<option value="${gunlukMetinEsc(sec)}" selected>${gunlukMetinEsc(sec)}</option>`;
   }
   return html;
 }

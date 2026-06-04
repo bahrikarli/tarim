@@ -9,7 +9,7 @@ function W([string]$rel, [string]$content) {
   [System.IO.File]::WriteAllText($p, $content, [System.Text.UTF8Encoding]::new($false))
 }
 
-# Marka / UTF-8 — Node ile (Set-Content Turkce bozar)
+# Marka / UTF-8 - Node ile (Set-Content Turkce bozar)
 $markaJs = Join-Path $PSScriptRoot 'acrziraat-marka-uygula.js'
 if (Test-Path $markaJs) {
   & node $markaJs $Hedef

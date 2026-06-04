@@ -78,17 +78,41 @@ function stokListeGruplamaArayuzKontrol() {
   return guncel;
 }
 
-async function stoklariGetir() {
+/** Stok verisini API'den çeker; stok listesi, reçete araması ve satış önbelleğini aynı anda günceller. */
+async function stokVerileriniYenile(opts = {}) {
+  const {
+    stokListesiGoster = true,
+    malzemePanel = false,
+    malzemeDetay = false,
+  } = opts;
   try {
-    const response = await fetch('/api/stok');
-    const stoklar = await response.json();
-    stokListeCache = Array.isArray(stoklar) ? stoklar : [];
-    stokListeGruplamaArayuzKontrol();
-    stokListeFiltrele(document.getElementById('stokAraInput')?.value || '');
-    stokOzetPanelleriniGuncelle();
+    const res = await fetch(`/api/stok?_=${Date.now()}`);
+    const stoklar = await res.json();
+    const arr = Array.isArray(stoklar) ? stoklar : [];
+    stokListeCache = arr;
+    if (typeof musteriSatisStokCache !== 'undefined') musteriSatisStokCache = arr;
+    if (typeof receteStokCache !== 'undefined') receteStokCache = arr;
+    window._stokSonYenileme = Date.now();
+
+    if (stokListesiGoster) {
+      stokListeGruplamaArayuzKontrol();
+      stokListeFiltrele(document.getElementById('stokAraInput')?.value || '');
+      stokOzetPanelleriniGuncelle();
+    }
+    if (malzemePanel && typeof malzemeGruplariPanelYukle === 'function') {
+      await malzemeGruplariPanelYukle();
+    } else if (malzemeDetay && typeof malzemeGruplariDetayYukle === 'function') {
+      await malzemeGruplariDetayYukle();
+    }
+    return arr;
   } catch (hata) {
-    console.error('Stoklar çekilirken hata:', hata);
+    console.error('Stok verisi yenilenemedi:', hata);
+    return stokListeCache || [];
   }
+}
+
+async function stoklariGetir() {
+  return stokVerileriniYenile({ stokListesiGoster: true });
 }
 
 function stokSeviyeMetni(urun) {
@@ -460,17 +484,12 @@ function stokGruplaOrtakAdTahmin(urunler) {
 
 function stokGruplaModalAc() {
   if (stokGrupSecimSet.size < 2) {
-    alert('En az 2 gruplansız stok satırı seçin.');
+    alert('En az 2 stok satırı seçin.');
     return;
   }
   const urunler = (stokListeCache || []).filter((u) => stokGrupSecimSet.has(Number(u.StokID)));
   if (urunler.length < 2) {
     alert('Seçilen satırlar bulunamadı. Listeyi yenileyin.');
-    return;
-  }
-  const zaten = urunler.find((u) => Number(u.MalzemeGrupID || 0) > 0);
-  if (zaten) {
-    alert('Zaten gruplanmış satır seçilemez.');
     return;
   }
   const adInput = document.getElementById('stokGruplaAdi');
@@ -479,6 +498,11 @@ function stokGruplaModalAc() {
   if (tb) {
     tb.innerHTML = urunler.map((u) => {
       const sid = Number(u.StokID);
+      const mevcutAmb = Number(u.AmbalajMiktari);
+      const mevcutOlcu = String(u.OlcuBirimi || 'Lt').trim() || 'Lt';
+      const ambVal = Number.isFinite(mevcutAmb) && mevcutAmb > 0 ? mevcutAmb : '';
+      const olcuOpts = ['Lt', 'cc', 'Kg', 'gr'].map((o) =>
+        `<option value="${o}"${o === mevcutOlcu ? ' selected' : ''}>${o}</option>`).join('');
       return `<tr data-stok-id="${sid}">
         <td>
           <div class="fw-semibold small">${gunlukMetinEsc(u.UrunAdi)}</div>
@@ -487,14 +511,9 @@ function stokGruplaModalAc() {
         <td class="text-end text-success">${Number(u.SatisFiyati || 0).toFixed(2)} ₺</td>
         <td class="text-end">${u.AlisFiyati ? Number(u.AlisFiyati).toFixed(2) + ' ₺' : '—'}</td>
         <td class="text-center"><span class="badge bg-secondary">${u.MevcutMiktar} ${gunlukMetinEsc(u.Birim || 'Adet')}</span></td>
-        <td><input type="number" class="form-control form-control-sm stok-grupla-miktar" min="0.001" step="any" placeholder="ör. 0,1"></td>
+        <td><input type="number" class="form-control form-control-sm stok-grupla-miktar" min="0.001" step="any" value="${ambVal}" placeholder="ör. 0,1"></td>
         <td>
-          <select class="form-select form-select-sm stok-grupla-olcu">
-            <option value="Lt" selected>Lt</option>
-            <option value="cc">cc</option>
-            <option value="Kg">Kg</option>
-            <option value="gr">gr</option>
-          </select>
+          <select class="form-select form-select-sm stok-grupla-olcu">${olcuOpts}</select>
         </td>
       </tr>`;
     }).join('');
@@ -543,9 +562,7 @@ async function stokGruplaKaydet() {
     stokGrupSecimToolbarGuncelle();
     const modalEl = document.getElementById('stokGruplaModal');
     if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl)?.hide();
-    await stoklariGetir();
-    const q = document.getElementById('stokAraInput')?.value || '';
-    stokListeFiltrele(q);
+    await stokVerileriniYenile({ stokListesiGoster: true, malzemeDetay: true });
     alert(`"${grupAdi}" malzeme grubu oluşturuldu (${ambalajlar.length} ambalaj). Dozaj için Tanımlamalar → Malzemeler’den düzenleyebilirsiniz.`);
     if (data.malzemeGrupID && typeof malzemeDuzenleModalAc === 'function') {
       if (confirm('Malzeme dozajlarını şimdi girmek ister misiniz?')) {
@@ -556,6 +573,21 @@ async function stokGruplaKaydet() {
     console.error(e);
     alert('Bağlantı hatası.');
   }
+}
+
+/** Sıvı ambalajları küçükten büyüğe (cc → Lt hacmine çevrilir). */
+function stokAmbalajHacimLt(urun) {
+  const m = Number(urun?.AmbalajMiktari);
+  if (!Number.isFinite(m) || m <= 0) return 0;
+  const o = String(urun?.OlcuBirimi || 'Lt').trim().toLocaleLowerCase('tr-TR');
+  if (o === 'cc' || o === 'ml') return m / 1000;
+  return m;
+}
+
+function stokAmbalajKucuktenBuyuge(a, b) {
+  const fark = stokAmbalajHacimLt(a) - stokAmbalajHacimLt(b);
+  if (Math.abs(fark) > 1e-9) return fark;
+  return String(a?.UrunAdi || '').localeCompare(String(b?.UrunAdi || ''), 'tr', { sensitivity: 'base' });
 }
 
 function stokListeFiltrele(q) {
@@ -590,7 +622,7 @@ function stokListeFiltrele(q) {
   const tekilSatirlar = [];
 
   for (const [, grup] of gruplar) {
-    const items = grup.items.sort((a, b) => Number(b.AmbalajMiktari || 0) - Number(a.AmbalajMiktari || 0));
+    const items = grup.items.sort(stokAmbalajKucuktenBuyuge);
     if (items.length > 1) cokAmbalajGruplar.push({ ...grup, items });
     else tekilSatirlar.push(...items);
   }
@@ -611,7 +643,7 @@ function stokListeFiltrele(q) {
     const urunHucre = girintili
       ? `<span class="text-muted me-1">↳</span>${ambEtiket}<span class="ms-1">${gunlukMetinEsc(urun.UrunAdi)}</span>`
       : `${gunlukMetinEsc(urun.UrunAdi)}${urun.AmbalajMiktari ? ` <span class="badge bg-success-subtle text-success border">${Number(urun.AmbalajMiktari)} ${urun.OlcuBirimi || 'Lt'}</span>` : ''}`;
-    const secilebilir = !Number(urun.MalzemeGrupID || 0);
+    const secilebilir = !girintili;
     const chkHucre = secilebilir
       ? `<td class="stok-sec-kolon text-center"><input type="checkbox" class="form-check-input stok-grup-chk" ${stokGrupSecimSet.has(Number(urun.StokID)) ? 'checked' : ''} onchange="stokGrupSecimToggle(${urun.StokID}, this.checked)" title="Gruplamak için seç" aria-label="Satırı seç"></td>`
       : '<td class="stok-sec-kolon"></td>';
@@ -1757,10 +1789,16 @@ function musteriSatisModalAc() {
 }
 
 async function musteriDetayUrunleriDoldur() {
+  if (typeof stokVerileriniYenile === 'function') {
+    await stokVerileriniYenile({ stokListesiGoster: false });
+    return;
+  }
   try {
-    const response = await fetch('/api/stok');
+    const response = await fetch(`/api/stok?_=${Date.now()}`);
     const stoklar = await response.json();
     musteriSatisStokCache = Array.isArray(stoklar) ? stoklar : [];
+    if (typeof receteStokCache !== 'undefined') receteStokCache = musteriSatisStokCache;
+    window._stokSonYenileme = Date.now();
   } catch (e) {
     console.error(e);
   }
@@ -5755,6 +5793,16 @@ function stokListeModalGeriAcPlanla() {
     if (listeEl) modalAc(listeEl);
   }, 100);
 }
+
+function stokListeAramaTemizle() {
+  const inp = document.getElementById('stokAraInput');
+  if (inp) inp.value = '';
+  if (typeof stokListeFiltrele === 'function') stokListeFiltrele('');
+}
+
+document.getElementById('stokListeModal')?.addEventListener('hidden.bs.modal', () => {
+  stokListeAramaTemizle();
+});
 
 document.getElementById('stokEkleModal')?.addEventListener('hidden.bs.modal', () => {
   if (tedAlimStokEkleDonus) {

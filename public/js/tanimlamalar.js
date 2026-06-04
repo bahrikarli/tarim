@@ -6,6 +6,7 @@ let stokBirimCache = [];
 
 const STOK_BIRIM_VARSAYILAN = [
   { BirimKodu: 'Lt', Aciklama: 'Litre (sıvı)' },
+  { BirimKodu: 'cc', Aciklama: 'Santilitre (sıvı)' },
   { BirimKodu: 'Kg', Aciklama: 'Kilogram' },
   { BirimKodu: 'Adet', Aciklama: 'Bidon, çuval' },
   { BirimKodu: 'Kutu', Aciklama: 'Kutu' },
@@ -28,16 +29,35 @@ function stokBirimListeAktif() {
   return liste.length ? liste : STOK_BIRIM_VARSAYILAN;
 }
 
+function stokBirimKoduNorm(kod) {
+  const k = String(kod || '').trim();
+  if (!k) return '';
+  const liste = stokBirimListeAktif();
+  const kl = k.toLocaleLowerCase('tr-TR');
+  const hit = liste.find((b) => String(b.BirimKodu || '').trim().toLocaleLowerCase('tr-TR') === kl);
+  if (hit) return String(hit.BirimKodu).trim();
+  const alias = { litre: 'Lt', l: 'Lt', lt: 'Lt', kilogram: 'Kg', kg: 'Kg', ad: 'Adet', adet: 'Adet' };
+  const canon = alias[kl];
+  if (canon && liste.some((b) => String(b.BirimKodu || '').trim() === canon)) return canon;
+  return k;
+}
+
+function stokBirimKoduEslesir(a, b) {
+  return stokBirimKoduNorm(a) === stokBirimKoduNorm(b)
+    || String(a || '').trim().toLocaleLowerCase('tr-TR') === String(b || '').trim().toLocaleLowerCase('tr-TR');
+}
+
 function stokBirimSelectOptionsHtml(secili) {
   const opts = stokBirimListeAktif();
+  const sec = stokBirimKoduNorm(secili);
   let html = opts.map((b) => {
-    const kod = b.BirimKodu;
-    const sel = String(secili || '') === kod ? ' selected' : '';
+    const kod = String(b.BirimKodu || '').trim();
+    const sel = sec && stokBirimKoduEslesir(sec, kod) ? ' selected' : '';
     const lbl = b.Aciklama ? `${kod} — ${b.Aciklama}` : kod;
     return `<option value="${gunlukMetinEsc(kod)}"${sel}>${gunlukMetinEsc(lbl)}</option>`;
   }).join('');
-  if (secili && !opts.some((b) => b.BirimKodu === secili)) {
-    html += `<option value="${gunlukMetinEsc(secili)}" selected>${gunlukMetinEsc(secili)} (eski)</option>`;
+  if (sec && !opts.some((b) => stokBirimKoduEslesir(sec, b.BirimKodu))) {
+    html += `<option value="${gunlukMetinEsc(sec)}" selected>${gunlukMetinEsc(sec)}</option>`;
   }
   return html;
 }
@@ -143,6 +163,7 @@ function stokMalzemeUrunAdiOlustur(grupAdi, amb, olcu) {
 }
 
 let malzemeGrupDetayCache = [];
+let malzemeDozajSonYuklenen = [];
 
 async function malzemeGruplariDetayYukle() {
   const res = await fetch('/api/malzeme-grup?detay=1');
@@ -279,11 +300,23 @@ function malzemeDozajGerekliAyarla(deger) {
   malzemeDozajPanelGuncelle();
 }
 
-function malzemeDuzenleDozajCiz(gid) {
+function malzemeDuzenleDozajCiz(gid, dozajListesi) {
   malzemeDuzenleDozajGid = gid || null;
   const wrap = document.getElementById('malzemeDuzenleDozaj');
   if (!wrap) return;
-  wrap.innerHTML = malzemeDozajTabloHtml(gid || 'yeni');
+  wrap.innerHTML = malzemeDozajTabloHtml(gid || 'yeni', dozajListesi);
+}
+
+function malzemeGrupCacheKayitGuncelle(gid, apiData) {
+  const kayit = {
+    MalzemeGrupID: gid,
+    GrupAdi: apiData?.grup?.GrupAdi || '',
+    AmbalajSayisi: (apiData?.ambalajlar || []).length,
+    ambalajlar: apiData?.ambalajlar || [],
+  };
+  const i = malzemeGrupDetayCache.findIndex((x) => Number(x.MalzemeGrupID) === Number(gid));
+  if (i >= 0) malzemeGrupDetayCache[i] = { ...malzemeGrupDetayCache[i], ...kayit };
+  else malzemeGrupDetayCache.push(kayit);
 }
 
 async function malzemeDuzenleModalAc(grupID) {
@@ -308,16 +341,25 @@ async function malzemeDuzenleModalAc(grupID) {
     if (baslik) baslik.innerHTML = '<i class="fa-solid fa-pen me-2"></i>Malzeme düzenle';
     if (tbody) {
       tbody.innerHTML = '';
-      for (const a of data.ambalajlar || []) {
+      const ambSirali = [...(data.ambalajlar || [])].sort((a, b) => {
+        const ha = Number(a?.AmbalajMiktari) || 0;
+        const hb = Number(b?.AmbalajMiktari) || 0;
+        const oa = String(a?.OlcuBirimi || 'Lt').toLowerCase();
+        const ob = String(b?.OlcuBirimi || 'Lt').toLowerCase();
+        const va = (oa === 'cc' || oa === 'ml') ? ha / 1000 : ha;
+        const vb = (ob === 'cc' || ob === 'ml') ? hb / 1000 : hb;
+        return va - vb;
+      });
+      for (const a of ambSirali) {
         malzemeAmbalajSatirEkle(a);
       }
     }
-    const g = malzemeGrupDetayCache.find((x) => Number(x.MalzemeGrupID) === gid) || { MalzemeGrupID: gid };
-    g._dozajlar = null;
+    malzemeGrupCacheKayitGuncelle(gid, data);
     if (malzemeDozajGerekliMi()) {
-      await malzemeGrupDozajlariYukle(gid);
-      malzemeDuzenleDozajCiz(gid);
+      const dozajlar = await malzemeGrupDozajlariYukle(gid);
+      malzemeDuzenleDozajCiz(gid, dozajlar);
     } else {
+      malzemeDozajSonYuklenen = [];
       malzemeDuzenleDozajCiz(null);
     }
   } else {
@@ -400,6 +442,26 @@ async function malzemeDuzenleKaydet() {
     }
     malzemeDuzenleSilinecekStok = [];
 
+    if (malzemeDozajGerekliMi()) {
+      const dozajlar = malzemeDozajTopla();
+      const resDoz = await fetch(`/api/malzeme-grup/${gid}/dozaj`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dozajlar }),
+      });
+      const dozData = await resDoz.json().catch(() => ({}));
+      if (!resDoz.ok || dozData.success === false) {
+        alert(dozData.message || 'Dozajlar veritabanına kaydedilemedi.');
+        return;
+      }
+    } else {
+      await fetch(`/api/malzeme-grup/${gid}/dozaj`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dozajlar: [] }),
+      });
+    }
+
     for (const sat of satirlar) {
       if (sat.stokID) {
         const urunAdi = stokMalzemeUrunAdiOlustur(ad, sat.ambalajMiktari, sat.olcuBirimi);
@@ -419,7 +481,6 @@ async function malzemeDuzenleKaydet() {
             malzemeGrupID: gid,
             ambalajMiktari: sat.ambalajMiktari,
             olcuBirimi: sat.olcuBirimi,
-            dozajlar: [],
           }),
         });
         if (!res.ok) {
@@ -452,26 +513,15 @@ async function malzemeDuzenleKaydet() {
       }
     }
 
-    if (malzemeDozajGerekliMi()) {
-      const dozajlar = malzemeDozajTopla();
-      await fetch(`/api/malzeme-grup/${gid}/dozaj`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dozajlar }),
-      });
-    } else {
-      await fetch(`/api/malzeme-grup/${gid}/dozaj`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dozajlar: [] }),
-      });
-    }
-
     if (typeof modalKapat === 'function') modalKapat(document.getElementById('malzemeDuzenleModal'));
     else if (typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(document.getElementById('malzemeDuzenleModal'))?.hide();
 
-    if (typeof stoklariGetir === 'function') await stoklariGetir();
-    await malzemeGruplariPanelYukle();
+    if (typeof stokVerileriniYenile === 'function') {
+      await stokVerileriniYenile({ stokListesiGoster: true, malzemePanel: true });
+    } else {
+      if (typeof stoklariGetir === 'function') await stoklariGetir();
+      await malzemeGruplariPanelYukle();
+    }
     alert('Malzeme ve ambalajlar kaydedildi.');
   } catch (e) {
     console.error(e);
@@ -481,11 +531,14 @@ async function malzemeDuzenleKaydet() {
   }
 }
 
-function malzemeDozajTabloHtml(gid) {
+function malzemeDozajTabloHtml(gid, dozajListesi) {
   const g = malzemeGrupDetayCache.find((x) => Number(x.MalzemeGrupID) === Number(gid));
-  let dozajMap = {};
-  if (g?._dozajlar) {
-    for (const d of g._dozajlar) dozajMap[d.TarimUrunID] = d;
+  const kaynak = Array.isArray(dozajListesi) ? dozajListesi
+    : (g?._dozajlar || malzemeDozajSonYuklenen || []);
+  const dozajMap = {};
+  for (const d of kaynak) {
+    const uid = Number(d?.TarimUrunID);
+    if (uid) dozajMap[uid] = d;
   }
   if (!tarimUrunCache.length) {
     return '<p class="text-muted mb-0">Önce Ürünler sekmesinden tarım ürünü ekleyin.</p>';
@@ -494,7 +547,7 @@ function malzemeDozajTabloHtml(gid) {
     <table class="table table-sm table-bordered mb-0"><thead class="table-light">
     <tr><th>Tarım ürünü (ekin)</th><th style="width:7.5rem">Miktar / dekar</th><th class="malz-col-birim">Birim</th></tr></thead><tbody>
     ${tarimUrunCache.filter((u) => u.Aktif !== false && u.Aktif !== 0).map((u) => {
-      const d = dozajMap[u.TarimUrunID];
+      const d = dozajMap[Number(u.TarimUrunID)];
       const miktar = d ? Number(d.MiktarDekar) : '';
       const birim = d?.Birim || 'Lt';
       return `<tr><td>${gunlukMetinEsc(u.UrunAdi)}</td>
@@ -506,13 +559,13 @@ function malzemeDozajTabloHtml(gid) {
 }
 
 async function malzemeGrupDozajlariYukle(gid) {
-  const res = await fetch(`/api/malzeme-grup/${gid}/dozaj`);
-  const list = await res.json();
+  const res = await fetch(`/api/malzeme-grup/${gid}/dozaj?_=${Date.now()}`);
+  const list = res.ok ? await res.json() : [];
+  const arr = Array.isArray(list) ? list : [];
+  malzemeDozajSonYuklenen = arr;
   const g = malzemeGrupDetayCache.find((x) => Number(x.MalzemeGrupID) === Number(gid));
-  if (g) g._dozajlar = list;
-  const wrap = document.getElementById('malzemeDuzenleDozaj');
-  const acikGid = Number(document.getElementById('malzemeDuzenleGrupID')?.value || 0);
-  if (wrap && acikGid === Number(gid)) wrap.innerHTML = malzemeDozajTabloHtml(gid);
+  if (g) g._dozajlar = arr;
+  return arr;
 }
 
 function malzemeDozajTopla() {
@@ -536,7 +589,8 @@ async function malzemeDozajKaydet(gid) {
   });
   if (!res.ok) return alert('Dozaj kaydedilemedi.');
   alert('Dozajlar kaydedildi.');
-  await malzemeGrupDozajlariYukle(gid);
+  const arr = await malzemeGrupDozajlariYukle(gid);
+  malzemeDuzenleDozajCiz(gid, arr);
 }
 
 function tarimUrunTabloCiz() {

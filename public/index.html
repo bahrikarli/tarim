@@ -329,6 +329,8 @@
         #musteriReceteAramaSonuclari.acik { display: block !important; }
         #musteriReceteAramaSonuclari .list-group-item { cursor: pointer; font-size: 0.9rem; }
         #musteriReceteAramaSonuclari .list-group-item:hover { background: #e8f5e9; }
+        #receteMalzemeHazirlaModal { z-index: 1105 !important; }
+        #receteMalzemeHazirlaModal.show ~ .modal-backdrop:last-of-type { z-index: 1100 !important; }
         .recete-split { min-height: min(72vh, 640px); }
         .recete-split-sol { background: #f8faf8; max-height: min(72vh, 640px); overflow-y: auto; }
         .recete-split-sag { max-height: min(72vh, 640px); overflow-y: auto; background: #fff; }
@@ -380,6 +382,23 @@
             margin-bottom: 1rem;
         }
         #receteGoruntuleModal .recete-gor-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 1rem; font-size: 0.85rem; }
+        #receteGoruntuleModal .recete-gor-meta .lbl { display: block; font-size: 0.75rem; color: #6c757d; margin-bottom: 2px; }
+        #receteGoruntuleModal .recete-gor-ozet { font-size: 0.8rem; color: #6c757d; margin-top: 0.5rem; }
+        #receteGoruntuleModal .recete-rapor-satis { font-size: 0.8125rem; color: #0d6efd; margin-bottom: 0.5rem; }
+        #receteGoruntuleModal .recete-gor-tablo { table-layout: fixed; }
+        #receteGoruntuleModal .recete-gor-tablo col.col-amb { width: 38%; }
+        #receteGoruntuleModal .recete-gor-tablo col.col-adet { width: 12%; }
+        #receteGoruntuleModal .recete-gor-tablo col.col-birim { width: 25%; }
+        #receteGoruntuleModal .recete-gor-tablo col.col-tutar { width: 25%; }
+        #receteGoruntuleModal .recete-gor-tablo th.amb,
+        #receteGoruntuleModal .recete-gor-tablo td.amb { text-align: left; }
+        #receteGoruntuleModal .recete-gor-tablo th.num,
+        #receteGoruntuleModal .recete-gor-tablo td.num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        #receteGoruntuleModal .recete-gor-tablo td.num.b { font-weight: 600; }
         #receteGoruntuleModal .recete-gor-not {
             background: #f8f9fa;
             border-radius: 0.375rem;
@@ -1405,14 +1424,11 @@
                                 <button type="button" class="btn btn-sm btn-outline-secondary shadow-sm text-nowrap" onclick="stokEkleModalAc()" title="Reçete/dozaj gerektirmeyen tek kalem ürünler">
                                     <i class="fa-solid fa-box me-1"></i>Genel stok
                                 </button>
-                                <button type="button" id="stokGruplaBtn" class="btn btn-sm btn-outline-success shadow-sm text-nowrap" disabled onclick="stokGruplaModalAc()" title="Aynı ürünün farklı boyutlarını tek malzemede birleştir">
-                                    <i class="fa-solid fa-object-group me-1"></i>Seçilenleri grupla (<span id="stokGruplaSecimSay">0</span>)
-                                </button>
                             </div>
                         </div>
                         <p class="small text-muted mb-1" id="stokListeToplamMetin">Toplam <strong class="text-dark">0</strong> ürün bulunmaktadır.</p>
                         <div id="stokListeEskiUyari" class="alert alert-warning small py-2 mb-2 d-none">
-                            <i class="fa-solid fa-triangle-exclamation me-1"></i><strong>Liste eski sürüm.</strong> Solda <strong>Seç</strong> sütunu ve üstte <strong>Seçilenleri grupla</strong> görünmüyorsa tarayıcıda <strong>Ctrl+F5</strong> yapın; EXE kullanıyorsanız kökten <code>node server.js</code> veya <code>BASLAT.bat</code> ile açın.
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i><strong>Liste eski sürüm.</strong> Solda <strong>Seç</strong> sütunu ve altta solda <strong>Seçilenleri grupla</strong> görünmüyorsa tarayıcıda <strong>Ctrl+F5</strong> yapın; EXE kullanıyorsanız kökten <code>node server.js</code> veya <code>BASLAT.bat</code> ile açın.
                         </div>
                         <p class="small text-primary mb-2"><i class="fa-solid fa-object-group me-1"></i>Soldaki <strong>Seç</strong> kutusunu işaretleyin (en az 2 satır), sonra <strong>Seçilenleri grupla</strong> — fiyatlar satırdan gelir, litre/ölçüyü siz yazarsınız.</p>
                         <p class="small text-muted mb-2">Gübre ve ilaçların tamamı <strong>Yeni malzeme</strong> ile eklenmeli; tek ambalajlı sarf için <strong>Genel stok</strong> yeterli.</p>
@@ -1435,7 +1451,10 @@
                             </table>
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer d-flex justify-content-between align-items-center w-100">
+                        <button type="button" id="stokGruplaBtn" class="btn btn-outline-success shadow-sm" disabled onclick="stokGruplaModalAc()" title="Aynı ürünün farklı boyutlarını tek malzemede birleştir">
+                            <i class="fa-solid fa-object-group me-1"></i>Seçilenleri grupla (<span id="stokGruplaSecimSay">0</span>)
+                        </button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
                     </div>
                 </div>
@@ -1741,6 +1760,60 @@
                                 <div id="musteriReceteSagDetay" class="d-none p-3"></div>
                             </section>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="receteMalzemeHazirlaModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" style="z-index: 1080;">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header text-white py-2" style="background: linear-gradient(90deg, #1565c0, #42a5f5);">
+                        <h5 class="modal-title mb-0"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>Malzemeyi hazırla</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-light border small mb-3 py-2" id="receteHazirlaEksikOzet" role="status">—</div>
+                        <div id="receteHazirlaGrupBolge">
+                            <div id="receteHazirlaBenzerBolge">
+                                <h6 class="fw-semibold text-primary mb-2"><i class="fa-solid fa-object-group me-1"></i>Benzer stok satırları</h6>
+                                <p class="small text-muted mb-2">Aynı ürünün farklı boyutlarını işaretleyin.</p>
+                                <div id="receteHazirlaBenzerListe" class="border rounded p-2 mb-3" style="max-height:160px;overflow:auto;"></div>
+                            </div>
+                            <div class="mb-3" id="receteHazirlaGrupAdiBolge">
+                                <label class="form-label fw-semibold small" for="receteHazirlaGrupAdi">Ortak malzeme adı</label>
+                                <input type="text" class="form-control form-control-sm" id="receteHazirlaGrupAdi" maxlength="150" oninput="this.dataset.auto='0'">
+                            </div>
+                            <div class="table-responsive mb-3" id="receteHazirlaAmbalajBolge">
+                                <table class="table table-sm table-bordered mb-0">
+                                    <thead class="table-light">
+                                        <tr><th class="text-center" style="width:2.6rem;" title="Tümünü seç / kaldır"><input type="checkbox" class="form-check-input" id="receteHazirlaTabloTumunuSec" checked onchange="receteHazirlaTabloTumunuSec(this.checked)"></th><th>Ambalaj / stok satırı</th><th class="text-end" style="min-width:6rem;">Satış ₺</th><th>Miktar</th><th>Birim</th></tr>
+                                    </thead>
+                                    <tbody id="receteHazirlaAmbalajTablo"></tbody>
+                                </table>
+                                <p class="small text-muted mb-0 mt-1"><i class="fa-regular fa-square-check me-1"></i>İşaretli satırlar kayda ve birleştirmeye dahil edilir; işareti kaldırarak eleyebilirsiniz.</p>
+                            </div>
+                        </div>
+                        <div id="receteHazirlaDozajBolge" class="border-top pt-3">
+                            <h6 class="fw-semibold text-success mb-2"><i class="fa-solid fa-flask me-1"></i>Dozaj (bu reçete)</h6>
+                            <p class="small text-muted mb-2">Ürün: <strong id="receteHazirlaDozajUrunAdi">—</strong> · Dekar: <strong id="receteHazirlaDozajDekar">—</strong></p>
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-5">
+                                    <label class="form-label small mb-1" for="receteHazirlaDozajMiktar">Miktar / dekar</label>
+                                    <input type="number" class="form-control form-control-sm" id="receteHazirlaDozajMiktar" min="0.0001" step="any" placeholder="ör. 1.5">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small mb-1" for="receteHazirlaDozajBirim">Birim</label>
+                                    <select class="form-select form-select-sm" id="receteHazirlaDozajBirim"></select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                        <button type="button" class="btn btn-primary" id="receteHazirlaKaydetBtn" onclick="receteMalzemeHazirlaKaydet(event)">
+                            <i class="fa-solid fa-check me-1"></i>Kaydet ve reçeteye ekle
+                        </button>
                     </div>
                 </div>
             </div>
@@ -3628,9 +3701,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/utils.js?v=1.0.61"></script>
-    <script src="js/navigation.js?v=1.0.61"></script>
-    <script src="js/tanimlamalar.js?v=5"></script>
-    <script src="js/recete.js?v=26"></script>
-    <script src="app.js?v=1.0.64"></script>
+    <script src="js/navigation.js?v=1.0.62"></script>
+    <script src="js/tanimlamalar.js?v=9"></script>
+    <script src="js/recete.js?v=49"></script>
+    <script src="app.js?v=1.0.68"></script>
 </body>
 </html>
