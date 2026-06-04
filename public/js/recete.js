@@ -321,6 +321,35 @@ function receteMalzemeSecimRadyoHtml(satirKey, secimTip, oneriler) {
   </div>`;
 }
 
+function receteAmbalajBoyutSayisi(m) {
+  const boyutlar = new Set();
+  for (const a of [...(m.ambalajlar || []), ...receteAmbalajlarFromPlan(m)]) {
+    const n = Number(a.ambalajMiktari);
+    if (n > 0) boyutlar.add(n);
+  }
+  return boyutlar.size;
+}
+
+/** Radyo yokken nedenini kısaca göster (çoğunlukla stokta tek ambalaj boyutu). */
+function receteMalzemeSecimBilgiHtml(m, opts) {
+  if (!opts?.editable || m.oneriler?.secimGerekli) return '';
+  const plan = receteAktifPlan(m) || m.oneriler?.enYakin;
+  const fire = Number(plan?.fire) || 0;
+  if (fire < 1e-6) return '';
+  const boyutSay = receteAmbalajBoyutSayisi(m);
+  if (boyutSay >= 2) {
+    return `<div class="recete-fatura-secim px-3 py-2 border-top small text-warning mb-0">
+      <i class="fa-solid fa-triangle-exclamation me-1"></i>Stokta ${boyutSay} ambalaj boyutu var ama seçenekler gelmedi. Sunucuyu yeniden başlatın (EXE değil, <code>node server.js</code> kök klasörden).
+    </div>`;
+  }
+  const birim = m.birim || 'Lt';
+  const tek = [...new Set((m.ambalajlar || []).map((a) => Number(a.ambalajMiktari)).filter((x) => x > 0))][0];
+  const fmt = Number.isFinite(tek) ? receteMiktarFmt(tek, birim) : '—';
+  return `<div class="recete-fatura-secim px-3 py-2 border-top bg-light small text-muted mb-0">
+    <i class="fa-solid fa-circle-info me-1"></i><strong>Ambalaj seçimi yok:</strong> bu malzeme için stokta tek boyut (${fmt}). «En yakın / en az geçen» için aynı gruba ikinci ambalaj ekleyin (Tanımlamalar → Malzemeler veya Stok).
+  </div>`;
+}
+
 function recetePlanSatirHtml(plan, etiket, birim, malzemeAdi, ambalajlar) {
   return recetePlanKompaktHtml(plan, birim, ambalajlar, { baslik: etiket });
 }
@@ -392,6 +421,7 @@ function receteMalzemeKartHtml(m, opts = {}) {
   const secimRadio = opts.editable
     ? receteMalzemeSecimRadyoHtml(satirKey, secimTip, m.oneriler)
     : '';
+  const secimBilgi = opts.editable ? receteMalzemeSecimBilgiHtml(m, opts) : '';
 
   const silBtn = opts.editable
     ? `<button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="receteSatirSil('${satirKey}')" title="Kaldır"><i class="fa-solid fa-xmark"></i></button>`
@@ -422,6 +452,7 @@ function receteMalzemeKartHtml(m, opts = {}) {
       </div>
     </div>
     ${secimRadio}
+    ${secimBilgi}
     ${planHtml}
   </div>`;
 }
