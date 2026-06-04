@@ -70,11 +70,20 @@ function stokOzetPanelleriniGuncelle(listelenenAdet) {
   }
 }
 
+function stokListeGruplamaArayuzKontrol() {
+  const guncel = !!document.getElementById('stokGruplaBtn')
+    && !!document.querySelector('.stok-liste-tablo thead .stok-sec-kolon');
+  const uyari = document.getElementById('stokListeEskiUyari');
+  if (uyari) uyari.classList.toggle('d-none', guncel);
+  return guncel;
+}
+
 async function stoklariGetir() {
   try {
     const response = await fetch('/api/stok');
     const stoklar = await response.json();
     stokListeCache = Array.isArray(stoklar) ? stoklar : [];
+    stokListeGruplamaArayuzKontrol();
     stokListeFiltrele(document.getElementById('stokAraInput')?.value || '');
     stokOzetPanelleriniGuncelle();
   } catch (hata) {
@@ -560,6 +569,7 @@ function stokListeFiltrele(q) {
   tb.innerHTML = '';
   stokOzetPanelleriniGuncelle(rows.length);
   stokGrupSecimToolbarGuncelle();
+  stokListeGruplamaArayuzKontrol();
   if (!rows.length) {
     tb.innerHTML = `<tr><td colspan="${STOK_TABLO_COLSPAN}" class="text-center text-muted p-4">Kayıt bulunamadı.</td></tr>`;
     return;
@@ -603,8 +613,8 @@ function stokListeFiltrele(q) {
       : `${gunlukMetinEsc(urun.UrunAdi)}${urun.AmbalajMiktari ? ` <span class="badge bg-success-subtle text-success border">${Number(urun.AmbalajMiktari)} ${urun.OlcuBirimi || 'Lt'}</span>` : ''}`;
     const secilebilir = !Number(urun.MalzemeGrupID || 0);
     const chkHucre = secilebilir
-      ? `<td class="text-center"><input type="checkbox" class="form-check-input" ${stokGrupSecimSet.has(Number(urun.StokID)) ? 'checked' : ''} onchange="stokGrupSecimToggle(${urun.StokID}, this.checked)" title="Gruplamak için seç"></td>`
-      : '<td></td>';
+      ? `<td class="stok-sec-kolon text-center"><input type="checkbox" class="form-check-input stok-grup-chk" ${stokGrupSecimSet.has(Number(urun.StokID)) ? 'checked' : ''} onchange="stokGrupSecimToggle(${urun.StokID}, this.checked)" title="Gruplamak için seç" aria-label="Satırı seç"></td>`
+      : '<td class="stok-sec-kolon"></td>';
     return `<tr class="${siniflar}">
         ${chkHucre}
         <td class="text-muted" style="font-size:0.8rem;">${urun.Barkod || '-'}</td>

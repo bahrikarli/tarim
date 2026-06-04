@@ -561,6 +561,21 @@
             border: none;
             line-height: 0;
         }
+        .stok-liste-tablo th.stok-sec-kolon,
+        .stok-liste-tablo td.stok-sec-kolon {
+            width: 3rem;
+            min-width: 3rem;
+            max-width: 3rem;
+            background: #e8f4fd;
+            border-right: 1px solid #b6d4fe;
+            vertical-align: middle;
+        }
+        .stok-liste-tablo .stok-grup-chk {
+            width: 1.15rem;
+            height: 1.15rem;
+            cursor: pointer;
+            margin: 0;
+        }
         .stok-liste-tablo tr.stok-tekil-satir td { background: #fff; }
         .stok-liste-tablo tr.stok-grup-alt-satir .stok-ambalaj-etiket {
             display: inline-block;
@@ -1396,14 +1411,17 @@
                             </div>
                         </div>
                         <p class="small text-muted mb-1" id="stokListeToplamMetin">Toplam <strong class="text-dark">0</strong> ürün bulunmaktadır.</p>
-                        <p class="small text-primary mb-2"><i class="fa-solid fa-object-group me-1"></i>Aynı ilacın 100 cc ve 250 cc gibi satırlarını işaretleyip <strong>Seçilenleri grupla</strong> ile tek malzeme yapın; fiyatlar satırdan gelir, litre/ölçüyü siz yazarsınız.</p>
+                        <div id="stokListeEskiUyari" class="alert alert-warning small py-2 mb-2 d-none">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i><strong>Liste eski sürüm.</strong> Solda <strong>Seç</strong> sütunu ve üstte <strong>Seçilenleri grupla</strong> görünmüyorsa tarayıcıda <strong>Ctrl+F5</strong> yapın; EXE kullanıyorsanız kökten <code>node server.js</code> veya <code>BASLAT.bat</code> ile açın.
+                        </div>
+                        <p class="small text-primary mb-2"><i class="fa-solid fa-object-group me-1"></i>Soldaki <strong>Seç</strong> kutusunu işaretleyin (en az 2 satır), sonra <strong>Seçilenleri grupla</strong> — fiyatlar satırdan gelir, litre/ölçüyü siz yazarsınız.</p>
                         <p class="small text-muted mb-2">Gübre ve ilaçların tamamı <strong>Yeni malzeme</strong> ile eklenmeli; tek ambalajlı sarf için <strong>Genel stok</strong> yeterli.</p>
                         <p class="small text-success mb-2 d-none" id="stokListeGrupAciklama"><i class="fa-solid fa-layer-group me-1"></i>Yeşil kutular <strong>çok ambalajlı malzeme</strong> grubudur; altındaki satırlar her ambalaj boyutudur.</p>
                         <div class="table-responsive">
                             <table class="table table-hover table-sm align-middle mb-0 stok-liste-tablo" style="font-size:0.85rem;">
                                 <thead>
                                     <tr class="table-light">
-                                        <th class="text-muted fw-semibold" style="width:2rem;"></th>
+                                        <th class="stok-sec-kolon text-center text-muted fw-semibold">Seç</th>
                                         <th class="text-muted fw-semibold">Barkod</th>
                                         <th class="text-muted fw-semibold">Ürün</th>
                                         <th class="text-muted fw-semibold">Kategori</th>
@@ -3613,6 +3631,6 @@
     <script src="js/navigation.js?v=1.0.61"></script>
     <script src="js/tanimlamalar.js?v=5"></script>
     <script src="js/recete.js?v=26"></script>
-    <script src="app.js?v=1.0.63"></script>
+    <script src="app.js?v=1.0.64"></script>
 </body>
 </html>
