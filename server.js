@@ -1260,6 +1260,88 @@ app.post('/api/malzeme-grup', async (req, res) => {
   }
 });
 
+app.post('/api/malzeme-grup/stok-grupla', async (req, res) => {
+  try {
+    const grupAdi = String(req.body?.grupAdi || '').trim();
+    const items = Array.isArray(req.body?.ambalajlar) ? req.body.ambalajlar : [];
+    const dozajGerekli = req.body?.dozajGerekli === false || req.body?.dozajGerekli === 0 ? 0 : 1;
+    if (!grupAdi) {
+      return res.status(400).json({ success: false, message: 'Ortak ürün adı zorunlu.' });
+    }
+    if (items.length < 2) {
+      return res.status(400).json({ success: false, message: 'En az 2 stok satırı seçin.' });
+    }
+    const pool = await poolPromise;
+    const tx = new sql.Transaction(pool);
+    await tx.begin();
+    try {
+      const ins = await new sql.Request(tx)
+        .input('Ad', sql.NVarChar(150), grupAdi)
+        .input('DozajGerekli', sql.Bit, dozajGerekli)
+        .query(`
+          INSERT INTO MalzemeGruplari (GrupAdi, DozajGerekli)
+          OUTPUT INSERTED.MalzemeGrupID
+          VALUES (@Ad, @DozajGerekli)
+        `);
+      const gid = ins.recordset[0]?.MalzemeGrupID;
+      if (!gid) throw new Error('Grup oluşturulamadı.');
+
+      const boyutlar = new Set();
+      for (const it of items) {
+        const stokID = Number(it.stokID);
+        const ambM = Number(it.ambalajMiktari);
+        const olcu = String(it.olcuBirimi || 'Lt').trim() || 'Lt';
+        if (!stokID || !Number.isFinite(ambM) || ambM <= 0) {
+          throw new Error('INVALID_AMB');
+        }
+        const key = `${ambM}|${olcu}`;
+        if (boyutlar.has(key)) throw new Error('DUP_AMB');
+        boyutlar.add(key);
+
+        const chk = await new sql.Request(tx)
+          .input('SID', sql.Int, stokID)
+          .query('SELECT StokID, MalzemeGrupID FROM Stok WHERE StokID = @SID');
+        if (!chk.recordset.length) throw new Error('NOT_FOUND');
+        if (chk.recordset[0].MalzemeGrupID) throw new Error('ALREADY_GROUPED');
+
+        const urunAdi = malzemeStokUrunAdi(grupAdi, ambM, olcu);
+        await new sql.Request(tx)
+          .input('SID', sql.Int, stokID)
+          .input('GID', sql.Int, gid)
+          .input('Amb', sql.Decimal(18, 3), ambM)
+          .input('Olcu', sql.NVarChar(10), olcu)
+          .input('UrunAdi', sql.NVarChar(150), urunAdi)
+          .query(`
+            UPDATE Stok SET MalzemeGrupID = @GID, AmbalajMiktari = @Amb, OlcuBirimi = @Olcu, UrunAdi = @UrunAdi
+            WHERE StokID = @SID
+          `);
+      }
+      await tx.commit();
+      const kullanici = req.body?.kullanici || 'Sistem';
+      await islemKaydet(kullanici, 'Stok Grupla', `${grupAdi} (${items.length} ambalaj)`);
+      res.status(201).json({ success: true, malzemeGrupID: gid });
+    } catch (inner) {
+      await tx.rollback();
+      if (inner.message === 'INVALID_AMB') {
+        return res.status(400).json({ success: false, message: 'Her satır için geçerli ambalaj miktarı girin.' });
+      }
+      if (inner.message === 'DUP_AMB') {
+        return res.status(409).json({ success: false, message: 'Aynı boyutta iki ambalaj olamaz.' });
+      }
+      if (inner.message === 'NOT_FOUND') {
+        return res.status(404).json({ success: false, message: 'Stok satırı bulunamadı.' });
+      }
+      if (inner.message === 'ALREADY_GROUPED') {
+        return res.status(409).json({ success: false, message: 'Seçilen satırlardan biri zaten gruplanmış.' });
+      }
+      throw inner;
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Gruplama kaydedilemedi.' });
+  }
+});
+
 function malzemeStokUrunAdi(grupAdi, ambM, olcu) {
   const ad = String(grupAdi || '').trim();
   const a = Number(ambM);

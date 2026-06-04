@@ -599,8 +599,8 @@ let _demoDurumCache = null;
 
 /** Reçete ambalaj seçimi radyo etiketleri (secimTip: enYakin | enUzak). */
 function receteSecimEtiket(tip) {
-  if (tip === 'enUzak') return 'Küçük ambalajlarla (çok kutu)';
-  return 'Az kutu — büyük ambalaj';
+  if (tip === 'enUzak') return 'İhtiyacı en az geçen seçenek';
+  return 'İhtiyaca en yakın seçenek';
 }
 
 async function demoDurumYukle() {

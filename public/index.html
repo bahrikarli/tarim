@@ -1126,7 +1126,7 @@
                             <div class="mb-3 position-relative" id="ozetReceteYeniMusteriWrap">
                                 <label class="form-label fw-semibold small mb-1" for="ozetReceteYeniMusteriAra">Müşteri <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="ozetReceteYeniMusteriAra" placeholder="Ad, firma, telefon veya no…" autocomplete="off"
-                                    oninput="ozetReceteMusteriAraGuncelle(this.value)" onkeydown="ozetReceteMusteriAraKeydown(event)">
+                                    oninput="ozetReceteMusteriAraGuncelleDebounced(this.value)" onkeydown="ozetReceteMusteriAraKeydown(event)">
                                 <input type="hidden" id="ozetReceteYeniMusteriID" value="">
                                 <div id="ozetReceteYeniMusteriSonuclari" class="list-group position-absolute w-100 mt-1 shadow-sm d-none" style="z-index:1070;max-height:180px;overflow:auto;"></div>
                                 <div id="ozetReceteYeniMusteriSecili" class="small text-primary fw-semibold mt-1 d-none"></div>
@@ -1390,15 +1390,20 @@
                                 <button type="button" class="btn btn-sm btn-outline-secondary shadow-sm text-nowrap" onclick="stokEkleModalAc()" title="Reçete/dozaj gerektirmeyen tek kalem ürünler">
                                     <i class="fa-solid fa-box me-1"></i>Genel stok
                                 </button>
+                                <button type="button" id="stokGruplaBtn" class="btn btn-sm btn-outline-success shadow-sm text-nowrap" disabled onclick="stokGruplaModalAc()" title="Aynı ürünün farklı boyutlarını tek malzemede birleştir">
+                                    <i class="fa-solid fa-object-group me-1"></i>Seçilenleri grupla (<span id="stokGruplaSecimSay">0</span>)
+                                </button>
                             </div>
                         </div>
                         <p class="small text-muted mb-1" id="stokListeToplamMetin">Toplam <strong class="text-dark">0</strong> ürün bulunmaktadır.</p>
+                        <p class="small text-primary mb-2"><i class="fa-solid fa-object-group me-1"></i>Aynı ilacın 100 cc ve 250 cc gibi satırlarını işaretleyip <strong>Seçilenleri grupla</strong> ile tek malzeme yapın; fiyatlar satırdan gelir, litre/ölçüyü siz yazarsınız.</p>
                         <p class="small text-muted mb-2">Gübre ve ilaçların tamamı <strong>Yeni malzeme</strong> ile eklenmeli; tek ambalajlı sarf için <strong>Genel stok</strong> yeterli.</p>
                         <p class="small text-success mb-2 d-none" id="stokListeGrupAciklama"><i class="fa-solid fa-layer-group me-1"></i>Yeşil kutular <strong>çok ambalajlı malzeme</strong> grubudur; altındaki satırlar her ambalaj boyutudur.</p>
                         <div class="table-responsive">
                             <table class="table table-hover table-sm align-middle mb-0 stok-liste-tablo" style="font-size:0.85rem;">
                                 <thead>
                                     <tr class="table-light">
+                                        <th class="text-muted fw-semibold" style="width:2rem;"></th>
                                         <th class="text-muted fw-semibold">Barkod</th>
                                         <th class="text-muted fw-semibold">Ürün</th>
                                         <th class="text-muted fw-semibold">Kategori</th>
@@ -1414,6 +1419,43 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="stokGruplaModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="fa-solid fa-object-group me-2"></i>Stok satırlarını malzemeye grupla</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small text-muted mb-3">Seçtiğiniz her stok satırı bir ambalaj olur. Alış/satış fiyatları ve stok adedi aynen kalır; ambalaj boyutunu (ör. 0,1 Lt veya 100 cc) siz girersiniz.</p>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="stokGruplaAdi">Ortak ürün adı</label>
+                            <input type="text" class="form-control" id="stokGruplaAdi" maxlength="150" placeholder="Örn. ATHLETIC 25 EC" autocomplete="off">
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle mb-0" style="font-size:0.85rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Stok satırı</th>
+                                        <th class="text-end">Satış</th>
+                                        <th class="text-end">Alış</th>
+                                        <th class="text-center">Adet</th>
+                                        <th style="min-width:6rem;">Miktar</th>
+                                        <th style="min-width:5rem;">Birim</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stokGruplaTablo"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                        <button type="button" class="btn btn-success" onclick="stokGruplaKaydet()"><i class="fa-solid fa-check me-1"></i>Grupla ve kaydet</button>
                     </div>
                 </div>
             </div>
@@ -1436,7 +1478,7 @@
                         <div class="mb-3">
                             <div class="input-group shadow-sm">
                                 <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span>
-                                <input type="text" class="form-control" id="musteriAraInput" placeholder="No, ad, firma, T.C., vergi no veya telefon ara..." oninput="musteriListeFiltrele(this.value)">
+                                <input type="text" class="form-control" id="musteriAraInput" placeholder="No, ad, firma, T.C., vergi no veya telefon ara..." oninput="musteriListeAraGuncelle(this.value)">
                             </div>
                         </div>
                         <div class="card shadow-sm border-0">
@@ -2679,7 +2721,7 @@
                             <div id="hizliSatisMusteriAramaAlani" class="d-none position-relative">
                                 <input type="text" class="form-control form-control-sm" id="hizliSatisMusteriAra"
                                        placeholder="Ad, firma, telefon veya müşteri no ile ara…" autocomplete="off"
-                                       oninput="hizliSatisMusteriAraGuncelle(this.value)"
+                                       oninput="hizliSatisMusteriAraGuncelleDebounced(this.value)"
                                        onkeydown="hizliSatisMusteriAraKeydown(event)">
                                 <input type="hidden" id="hizliSatisMusteriID" value="">
                                 <div id="hizliSatisMusteriSeciliOzet" class="small text-success fw-semibold mt-2 d-none"></div>
@@ -3570,7 +3612,7 @@
     <script src="js/utils.js?v=1.0.61"></script>
     <script src="js/navigation.js?v=1.0.61"></script>
     <script src="js/tanimlamalar.js?v=5"></script>
-    <script src="js/recete.js?v=23"></script>
-    <script src="app.js?v=1.0.61"></script>
+    <script src="js/recete.js?v=26"></script>
+    <script src="app.js?v=1.0.63"></script>
 </body>
 </html>

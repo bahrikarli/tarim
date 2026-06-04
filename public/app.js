@@ -1,5 +1,6 @@
 let stokDuzenlemeID = null;
 let stokListeCache = [];
+const stokGrupSecimSet = new Set();
 
 /** Piyasa referans paneli: true yap + index.html #stokPiyasaPanel d-none kaldır */
 const STOK_PIYASA_PANEL_AKTIF = false;
@@ -415,6 +416,139 @@ async function stokBarkodEtiketYazdir() {
   }
 }
 
+const STOK_TABLO_COLSPAN = 8;
+
+function stokGrupSecimToolbarGuncelle() {
+  const n = stokGrupSecimSet.size;
+  const btn = document.getElementById('stokGruplaBtn');
+  const say = document.getElementById('stokGruplaSecimSay');
+  if (say) say.textContent = String(n);
+  if (btn) btn.disabled = n < 2;
+}
+
+function stokGrupSecimToggle(stokID, checked) {
+  const id = Number(stokID);
+  if (!id) return;
+  if (checked) stokGrupSecimSet.add(id);
+  else stokGrupSecimSet.delete(id);
+  stokGrupSecimToolbarGuncelle();
+}
+
+function stokGruplaOrtakAdTahmin(urunler) {
+  if (!urunler.length) return '';
+  const adlar = urunler.map((u) => String(u.UrunAdi || '').trim()).filter(Boolean);
+  if (!adlar.length) return '';
+  const tokens = adlar.map((a) => a.split(/\s+/));
+  const ortak = [];
+  const len = Math.min(...tokens.map((t) => t.length));
+  for (let i = 0; i < len; i++) {
+    const w = tokens[0][i];
+    if (tokens.every((t) => t[i] === w)) ortak.push(w);
+    else break;
+  }
+  return ortak.join(' ').trim() || adlar[0];
+}
+
+function stokGruplaModalAc() {
+  if (stokGrupSecimSet.size < 2) {
+    alert('En az 2 gruplansız stok satırı seçin.');
+    return;
+  }
+  const urunler = (stokListeCache || []).filter((u) => stokGrupSecimSet.has(Number(u.StokID)));
+  if (urunler.length < 2) {
+    alert('Seçilen satırlar bulunamadı. Listeyi yenileyin.');
+    return;
+  }
+  const zaten = urunler.find((u) => Number(u.MalzemeGrupID || 0) > 0);
+  if (zaten) {
+    alert('Zaten gruplanmış satır seçilemez.');
+    return;
+  }
+  const adInput = document.getElementById('stokGruplaAdi');
+  if (adInput) adInput.value = stokGruplaOrtakAdTahmin(urunler);
+  const tb = document.getElementById('stokGruplaTablo');
+  if (tb) {
+    tb.innerHTML = urunler.map((u) => {
+      const sid = Number(u.StokID);
+      return `<tr data-stok-id="${sid}">
+        <td>
+          <div class="fw-semibold small">${gunlukMetinEsc(u.UrunAdi)}</div>
+          <div class="text-muted" style="font-size:0.75rem;">${gunlukMetinEsc(u.Barkod || '—')}</div>
+        </td>
+        <td class="text-end text-success">${Number(u.SatisFiyati || 0).toFixed(2)} ₺</td>
+        <td class="text-end">${u.AlisFiyati ? Number(u.AlisFiyati).toFixed(2) + ' ₺' : '—'}</td>
+        <td class="text-center"><span class="badge bg-secondary">${u.MevcutMiktar} ${gunlukMetinEsc(u.Birim || 'Adet')}</span></td>
+        <td><input type="number" class="form-control form-control-sm stok-grupla-miktar" min="0.001" step="any" placeholder="ör. 0,1"></td>
+        <td>
+          <select class="form-select form-select-sm stok-grupla-olcu">
+            <option value="Lt" selected>Lt</option>
+            <option value="cc">cc</option>
+            <option value="Kg">Kg</option>
+            <option value="gr">gr</option>
+          </select>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+  const modalEl = document.getElementById('stokGruplaModal');
+  if (modalEl && typeof bootstrap !== 'undefined') {
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  }
+}
+
+async function stokGruplaKaydet() {
+  const grupAdi = String(document.getElementById('stokGruplaAdi')?.value || '').trim();
+  if (!grupAdi) {
+    alert('Ortak ürün adını yazın.');
+    return;
+  }
+  const satirlar = [...document.querySelectorAll('#stokGruplaTablo tr[data-stok-id]')];
+  const ambalajlar = [];
+  for (const tr of satirlar) {
+    const stokID = Number(tr.getAttribute('data-stok-id'));
+    const ambalajMiktari = Number(tr.querySelector('.stok-grupla-miktar')?.value);
+    const olcuBirimi = String(tr.querySelector('.stok-grupla-olcu')?.value || 'Lt').trim() || 'Lt';
+    if (!stokID || !Number.isFinite(ambalajMiktari) || ambalajMiktari <= 0) {
+      alert('Her satır için ambalaj miktarını girin (ör. 100 cc için 100 ve birim cc, veya 0,1 Lt).');
+      return;
+    }
+    ambalajlar.push({ stokID, ambalajMiktari, olcuBirimi });
+  }
+  if (ambalajlar.length < 2) {
+    alert('En az 2 ambalaj gerekli.');
+    return;
+  }
+  const kullanici = typeof aktifKullaniciAdi === 'function' ? aktifKullaniciAdi() : (localStorage.getItem('kullanici') || 'Sistem');
+  try {
+    const res = await fetch('/api/malzeme-grup/stok-grupla', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grupAdi, ambalajlar, kullanici }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      alert(data.message || 'Gruplama kaydedilemedi.');
+      return;
+    }
+    stokGrupSecimSet.clear();
+    stokGrupSecimToolbarGuncelle();
+    const modalEl = document.getElementById('stokGruplaModal');
+    if (modalEl && typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(modalEl)?.hide();
+    await stoklariGetir();
+    const q = document.getElementById('stokAraInput')?.value || '';
+    stokListeFiltrele(q);
+    alert(`"${grupAdi}" malzeme grubu oluşturuldu (${ambalajlar.length} ambalaj). Dozaj için Tanımlamalar → Malzemeler’den düzenleyebilirsiniz.`);
+    if (data.malzemeGrupID && typeof malzemeDuzenleModalAc === 'function') {
+      if (confirm('Malzeme dozajlarını şimdi girmek ister misiniz?')) {
+        await malzemeDuzenleModalAc(data.malzemeGrupID);
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Bağlantı hatası.');
+  }
+}
+
 function stokListeFiltrele(q) {
   const tb = document.getElementById('stokTabloGovdesi');
   if (!tb) return;
@@ -425,8 +559,9 @@ function stokListeFiltrele(q) {
   });
   tb.innerHTML = '';
   stokOzetPanelleriniGuncelle(rows.length);
+  stokGrupSecimToolbarGuncelle();
   if (!rows.length) {
-    tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-4">Kayıt bulunamadı.</td></tr>';
+    tb.innerHTML = `<tr><td colspan="${STOK_TABLO_COLSPAN}" class="text-center text-muted p-4">Kayıt bulunamadı.</td></tr>`;
     return;
   }
   const gruplar = new Map();
@@ -466,7 +601,12 @@ function stokListeFiltrele(q) {
     const urunHucre = girintili
       ? `<span class="text-muted me-1">↳</span>${ambEtiket}<span class="ms-1">${gunlukMetinEsc(urun.UrunAdi)}</span>`
       : `${gunlukMetinEsc(urun.UrunAdi)}${urun.AmbalajMiktari ? ` <span class="badge bg-success-subtle text-success border">${Number(urun.AmbalajMiktari)} ${urun.OlcuBirimi || 'Lt'}</span>` : ''}`;
+    const secilebilir = !Number(urun.MalzemeGrupID || 0);
+    const chkHucre = secilebilir
+      ? `<td class="text-center"><input type="checkbox" class="form-check-input" ${stokGrupSecimSet.has(Number(urun.StokID)) ? 'checked' : ''} onchange="stokGrupSecimToggle(${urun.StokID}, this.checked)" title="Gruplamak için seç"></td>`
+      : '<td></td>';
     return `<tr class="${siniflar}">
+        ${chkHucre}
         <td class="text-muted" style="font-size:0.8rem;">${urun.Barkod || '-'}</td>
         <td class="fw-semibold ${girintili ? 'ps-3' : ''}">${urunHucre}</td>
         <td class="text-muted">${urun.Kategori || '-'}</td>
@@ -485,7 +625,7 @@ function stokListeFiltrele(q) {
   if (grupAciklama) grupAciklama.classList.toggle('d-none', cokAmbalajGruplar.length === 0);
 
   if (cokAmbalajGruplar.length) {
-    htmlParcalari.push(`<tr class="stok-bolum-baslik"><td colspan="7">
+    htmlParcalari.push(`<tr class="stok-bolum-baslik"><td colspan="${STOK_TABLO_COLSPAN}">
       <i class="fa-solid fa-layer-group me-1"></i>Çok ambalajlı malzemeler
       <span class="fw-normal text-muted ms-1">(${cokAmbalajGruplar.length} grup)</span></td></tr>`);
     for (const grup of cokAmbalajGruplar) {
@@ -495,7 +635,7 @@ function stokListeFiltrele(q) {
       const duzenleBtn = gid > 0
         ? `<button type="button" class="btn btn-sm btn-outline-success ms-auto" onclick="stokMalzemeGrubuDuzenle(${gid})" title="Tüm ambalajları birlikte düzenle"><i class="fa-solid fa-pen me-1"></i>Grubu düzenle</button>`
         : '';
-      htmlParcalari.push(`<tr class="stok-grup-baslik"><td colspan="7">
+      htmlParcalari.push(`<tr class="stok-grup-baslik"><td colspan="${STOK_TABLO_COLSPAN}">
         <div class="d-flex flex-wrap align-items-center gap-2">
           <i class="fa-solid fa-flask text-success fa-lg"></i>
           <strong class="fs-6">${gunlukMetinEsc(grup.ad)}</strong>
@@ -506,13 +646,13 @@ function stokListeFiltrele(q) {
       items.forEach((u, i) => {
         htmlParcalari.push(stokSatirHtml(u, { girintili: true, sonGrup: i === items.length - 1 }));
       });
-      htmlParcalari.push('<tr class="stok-grup-ayrac"><td colspan="7"></td></tr>');
+      htmlParcalari.push(`<tr class="stok-grup-ayrac"><td colspan="${STOK_TABLO_COLSPAN}"></td></tr>`);
     }
   }
 
   if (tekilSatirlar.length) {
     if (cokAmbalajGruplar.length) {
-      htmlParcalari.push(`<tr class="stok-bolum-baslik"><td colspan="7">
+      htmlParcalari.push(`<tr class="stok-bolum-baslik"><td colspan="${STOK_TABLO_COLSPAN}">
         <i class="fa-solid fa-box me-1"></i>Tek ambalaj / genel stok
         <span class="fw-normal text-muted ms-1">(${tekilSatirlar.length} kalem)</span></td></tr>`);
     }
@@ -843,6 +983,48 @@ function musteriGorunenAd(m) {
   return String(m.AdSoyad || m.FirmaAdi || 'Müşteri').trim();
 }
 
+/** Müşteri araması için önceden birleştirilmiş metin (her tuşta 8× toLocaleLowerCase yok). */
+function musteriAramaMetniOlustur(m) {
+  if (!m) return '';
+  if (m._aramaMetin) return m._aramaMetin;
+  const parcalar = [
+    m.MusteriID,
+    m.AdSoyad,
+    m.FirmaAdi,
+    m.Telefon,
+    m.tcno,
+    m.vergino,
+    m.yetkili,
+    musteriTurEtiket(m),
+    musteriGorunenAd(m),
+    musteriGorunenAlt(m),
+    m.TanimAdi,
+  ];
+  m._aramaMetin = parcalar.map((s) => String(s ?? '')).join(' ').toLocaleLowerCase('tr-TR');
+  return m._aramaMetin;
+}
+
+function musteriCacheAramaIndeksiGuncelle() {
+  const liste = window._musteriListeCache;
+  if (!Array.isArray(liste)) return;
+  for (const m of liste) {
+    delete m._aramaMetin;
+    musteriAramaMetniOlustur(m);
+  }
+}
+
+let _musteriListeAraTimer = null;
+function musteriListeAraGuncelle(q) {
+  clearTimeout(_musteriListeAraTimer);
+  _musteriListeAraTimer = setTimeout(() => musteriListeFiltrele(q), 220);
+}
+
+let _hizliSatisMusteriAraTimer = null;
+function hizliSatisMusteriAraGuncelleDebounced(deger) {
+  clearTimeout(_hizliSatisMusteriAraTimer);
+  _hizliSatisMusteriAraTimer = setTimeout(() => hizliSatisMusteriAraGuncelle(deger), 220);
+}
+
 function musteriGorunenAlt(m) {
   if (!m || !musteriTuzelMi(m)) return String(m.FirmaAdi || m.TanimAdi || '').trim();
   const y = String(m.yetkili || '').trim();
@@ -990,75 +1172,78 @@ async function musterileriGetir() {
     const response = await fetch('/api/musteri');
     const musteriler = await response.json();
     window._musteriListeCache = Array.isArray(musteriler) ? musteriler : [];
+    musteriCacheAramaIndeksiGuncelle();
     musteriListeFiltrele(document.getElementById('musteriAraInput')?.value || '');
   } catch (hata) {
     console.error('Müşteriler çekilirken hata:', hata);
   }
 }
 
+function musteriListeSatirHtml(musteri) {
+  let bakiyeRenk = 'text-secondary';
+  if (musteri.Bakiye > 0) bakiyeRenk = 'text-success';
+  if (musteri.Bakiye < 0) bakiyeRenk = 'text-danger';
+  const tuzel = musteriTuzelMi(musteri);
+  const turBadge = musteriTurBadgeHtml(tuzel, true);
+  const alt = musteriGorunenAlt(musteri);
+  const adHucre = alt
+    ? `<div class="fw-bold text-dark">${gunlukMetinEsc(musteriGorunenAd(musteri))}</div><div class="small text-muted">${gunlukMetinEsc(alt)}</div>`
+    : `<span class="fw-bold text-dark">${gunlukMetinEsc(musteriGorunenAd(musteri))}</span>`;
+  return `<tr onclick="musteriDetayModalAc(${musteri.MusteriID})" style="cursor: pointer;" title="Tıkla: cari hareketler">
+    <td class="align-middle fw-bold text-muted">#${musteri.MusteriID}</td>
+    <td class="align-middle">${turBadge}</td>
+    <td class="align-middle">${adHucre}</td>
+    <td class="align-middle text-nowrap">${gunlukMetinEsc(musteriKimlikNo(musteri))}</td>
+    <td class="align-middle">${musteri.Telefon || '-'}</td>
+    <td class="align-middle fw-bold ${bakiyeRenk}">${musteri.Bakiye ? musteri.Bakiye.toFixed(2) : '0.00'}</td>
+    <td class="align-middle text-end">
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); musteriSil(${musteri.MusteriID})"><i class="fa-solid fa-trash"></i></button>
+    </td>
+  </tr>`;
+}
+
+const MUSTERI_LISTE_BOS_LIMIT = 100;
+const MUSTERI_LISTE_ARAMA_LIMIT = 200;
+
 function musteriListeFiltrele(q) {
   const liste = Array.isArray(window._musteriListeCache) ? window._musteriListeCache : [];
   const aranan = String(q || '').trim().toLocaleLowerCase('tr-TR');
   const tabloGovdesi = document.getElementById('musteriTabloGovdesi');
   if (!tabloGovdesi) return;
-  tabloGovdesi.innerHTML = '';
+
+  if (!liste.length) {
+    tabloGovdesi.innerHTML =
+      '<tr><td colspan="7" class="text-center text-muted p-4">Henüz hiç müşteri eklenmemiş.</td></tr>';
+    return;
+  }
 
   let filtreli = liste;
   if (aranan) {
-    filtreli = liste.filter((m) => {
-      const no = String(m.MusteriID || '');
-      const ad = String(m.AdSoyad || '').toLocaleLowerCase('tr-TR');
-      const firma = String(m.FirmaAdi || '').toLocaleLowerCase('tr-TR');
-      const tel = String(m.Telefon || '').toLocaleLowerCase('tr-TR');
-      const tc = String(m.tcno || '').toLocaleLowerCase('tr-TR');
-      const vergi = String(m.vergino || '').toLocaleLowerCase('tr-TR');
-      const yetkili = String(m.yetkili || '').toLocaleLowerCase('tr-TR');
-      const tur = musteriTurEtiket(m).toLocaleLowerCase('tr-TR');
-      const gorunen = musteriGorunenAd(m).toLocaleLowerCase('tr-TR');
-      return (
-        no.includes(aranan) ||
-        ad.includes(aranan) ||
-        firma.includes(aranan) ||
-        tel.includes(aranan) ||
-        tc.includes(aranan) ||
-        vergi.includes(aranan) ||
-        yetkili.includes(aranan) ||
-        tur.includes(aranan) ||
-        gorunen.includes(aranan)
-      );
-    });
+    filtreli = [];
+    for (let i = 0; i < liste.length; i += 1) {
+      const m = liste[i];
+      if (musteriAramaMetniOlustur(m).includes(aranan)) filtreli.push(m);
+      if (filtreli.length >= MUSTERI_LISTE_ARAMA_LIMIT) break;
+    }
+  } else if (liste.length > MUSTERI_LISTE_BOS_LIMIT) {
+    filtreli = liste.slice(0, MUSTERI_LISTE_BOS_LIMIT);
   }
 
   if (!filtreli.length) {
     tabloGovdesi.innerHTML =
-      `<tr><td colspan="7" class="text-center text-muted p-4">${aranan ? 'Aramaya uygun müşteri bulunamadı.' : 'Henüz hiç müşteri eklenmemiş.'}</td></tr>`;
+      '<tr><td colspan="7" class="text-center text-muted p-4">Aramaya uygun müşteri bulunamadı.</td></tr>';
     return;
   }
 
-  filtreli.forEach((musteri) => {
-      let bakiyeRenk = 'text-secondary';
-      if (musteri.Bakiye > 0) bakiyeRenk = 'text-success';
-      if (musteri.Bakiye < 0) bakiyeRenk = 'text-danger';
-      const tuzel = musteriTuzelMi(musteri);
-      const turBadge = musteriTurBadgeHtml(tuzel, true);
-      const alt = musteriGorunenAlt(musteri);
-      const adHucre = alt
-        ? `<div class="fw-bold text-dark">${gunlukMetinEsc(musteriGorunenAd(musteri))}</div><div class="small text-muted">${gunlukMetinEsc(alt)}</div>`
-        : `<span class="fw-bold text-dark">${gunlukMetinEsc(musteriGorunenAd(musteri))}</span>`;
+  const fazla = aranan
+    ? (liste.length > MUSTERI_LISTE_ARAMA_LIMIT && filtreli.length >= MUSTERI_LISTE_ARAMA_LIMIT
+      ? `<tr><td colspan="7" class="text-center text-muted small p-2">İlk ${MUSTERI_LISTE_ARAMA_LIMIT} sonuç gösteriliyor; aramayı daraltın.</td></tr>`
+      : '')
+    : (liste.length > MUSTERI_LISTE_BOS_LIMIT
+      ? `<tr><td colspan="7" class="text-center text-muted small p-2">İlk ${MUSTERI_LISTE_BOS_LIMIT} müşteri. Tümünü bulmak için yukarıdan arayın (${liste.length} kayıt).</td></tr>`
+      : '');
 
-      tabloGovdesi.innerHTML += `
-        <tr onclick="musteriDetayModalAc(${musteri.MusteriID})" style="cursor: pointer;" title="Tıkla: cari hareketler">
-          <td class="align-middle fw-bold text-muted">#${musteri.MusteriID}</td>
-          <td class="align-middle">${turBadge}</td>
-          <td class="align-middle">${adHucre}</td>
-          <td class="align-middle text-nowrap">${gunlukMetinEsc(musteriKimlikNo(musteri))}</td>
-          <td class="align-middle">${musteri.Telefon || '-'}</td>
-          <td class="align-middle fw-bold ${bakiyeRenk}">${musteri.Bakiye ? musteri.Bakiye.toFixed(2) : '0.00'}</td>
-          <td class="align-middle text-end">
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); musteriSil(${musteri.MusteriID})"><i class="fa-solid fa-trash"></i></button>
-          </td>
-        </tr>`;
-  });
+  tabloGovdesi.innerHTML = filtreli.map((m) => musteriListeSatirHtml(m)).join('') + fazla;
 }
 
 async function musteriKaydet(event) {
@@ -4540,26 +4725,12 @@ function hizliSatisMusteriFiltrele(q) {
   const liste = Array.isArray(window._musteriListeCache) ? window._musteriListeCache : [];
   const aranan = String(q || '').trim().toLocaleLowerCase('tr-TR');
   if (!aranan) return liste.slice(0, 40);
-  return liste.filter((m) => {
-    const no = String(m.MusteriID || '');
-    const ad = String(m.AdSoyad || '').toLocaleLowerCase('tr-TR');
-    const firma = String(m.FirmaAdi || '').toLocaleLowerCase('tr-TR');
-    const tel = String(m.Telefon || '').toLocaleLowerCase('tr-TR');
-    const tc = String(m.tcno || '').toLocaleLowerCase('tr-TR');
-    const vergi = String(m.vergino || '').toLocaleLowerCase('tr-TR');
-    const yetkili = String(m.yetkili || '').toLocaleLowerCase('tr-TR');
-    const gorunen = musteriGorunenAd(m).toLocaleLowerCase('tr-TR');
-    return (
-      no.includes(aranan) ||
-      ad.includes(aranan) ||
-      firma.includes(aranan) ||
-      tel.includes(aranan) ||
-      tc.includes(aranan) ||
-      vergi.includes(aranan) ||
-      yetkili.includes(aranan) ||
-      gorunen.includes(aranan)
-    );
-  }).slice(0, 40);
+  const sonuc = [];
+  for (let i = 0; i < liste.length; i += 1) {
+    if (musteriAramaMetniOlustur(liste[i]).includes(aranan)) sonuc.push(liste[i]);
+    if (sonuc.length >= 40) break;
+  }
+  return sonuc;
 }
 
 function hizliSatisMusteriSec(m) {
@@ -4709,6 +4880,7 @@ async function hizliSatisMusteriListesiniHazirla() {
     const r = await fetch('/api/musteri');
     const list = await r.json();
     window._musteriListeCache = Array.isArray(list) ? list : [];
+    musteriCacheAramaIndeksiGuncelle();
   } catch (e) {
     console.error(e);
     window._musteriListeCache = [];
