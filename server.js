@@ -20,6 +20,7 @@ const {
   guncellemeManifestTarimMi,
 } = require('./lib/guncelleme-config');
 const { registerBackupRoutes } = require('./routes/backups');
+const { registerEfaturaEdmRoutes } = require('./routes/efatura-edm');
 require('./lib/env-yukle').envYukle();
 
 const app = express();
@@ -4937,6 +4938,8 @@ registerUpdateRoutes(app, {
   urlIcerikIndir,
   githubReleaseAssetUrlTahmini,
 });
+
+registerEfaturaEdmRoutes(app);
 
 registerBackupRoutes(app, {
   sql,

@@ -23,7 +23,8 @@
     "publish:desktop": "taskkill /F /IM \"Tarım Otomasyon.exe\" >nul 2>&1 & set CSC_IDENTITY_AUTO_DISCOVERY=false && electron-builder --win nsis --publish always",
     "publish:desktop:fresh": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$ts=Get-Date -Format yyyyMMdd-HHmmss; $env:CSC_IDENTITY_AUTO_DISCOVERY='false'; npx electron-builder --win nsis --publish always --config.directories.output=dist-desktop-$ts\"",
     "import:musteri": "node scripts/musteri-excel-aktar.js",
-    "import:musteri:dry": "node scripts/musteri-excel-aktar.js --dry-run"
+    "import:musteri:dry": "node scripts/musteri-excel-aktar.js --dry-run",
+    "test:edm": "node scripts/edm-efatura-test.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.17",
@@ -32,6 +33,7 @@
     "electron-updater": "^6.6.2",
     "express": "^4.21.0",
     "mssql": "^11.0.1",
+    "soap": "^1.1.12",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
