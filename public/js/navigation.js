@@ -6,9 +6,10 @@ function menuyuGoster(bolumAdi) {
     return;
   }
   if (bolumAdi === 'stok') {
-    modalAc(document.getElementById('stokListeModal'), () => {
+    modalAc(document.getElementById('stokListeModal'), async () => {
       if (typeof stokListeAramaTemizle === 'function') stokListeAramaTemizle();
-      stoklariGetir();
+      await stoklariGetir();
+      if (typeof stokListeAramaOdakla === 'function') stokListeAramaOdakla();
     });
     return;
   }

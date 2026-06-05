@@ -141,6 +141,24 @@ function stokAlfabetikSirala(liste) {
   );
 }
 
+function stokRaporAmbalajFmt(urun) {
+  const m = Number(urun?.AmbalajMiktari);
+  if (!Number.isFinite(m) || m <= 0) return '—';
+  const o = String(urun?.OlcuBirimi || 'Lt').trim() || 'Lt';
+  const v = m >= 1
+    ? m.toLocaleString('tr-TR', { maximumFractionDigits: 3 })
+    : m.toLocaleString('tr-TR', { maximumFractionDigits: 4 });
+  return `${v} ${o}`;
+}
+
+function stokRaporOlcuBirimi(urun) {
+  const m = Number(urun?.AmbalajMiktari);
+  if (Number.isFinite(m) && m > 0) {
+    return String(urun?.OlcuBirimi || 'Lt').trim() || 'Lt';
+  }
+  return String(urun?.Birim || 'Adet').trim() || 'Adet';
+}
+
 function stokAlfabetikRaporDokumaniOlustur(rows) {
   const company = {
     unvan: gunlukMetinEsc(uygulamaAyarlari?.SirketUnvan || 'ŞİRKET BİLGİSİ'),
@@ -164,12 +182,17 @@ function stokAlfabetikRaporDokumaniOlustur(rows) {
         : durum === 'Yeterli'
           ? 'ok'
           : 'warn';
+      const ambalaj = stokRaporAmbalajFmt(urun);
+      const olcu = stokRaporOlcuBirimi(urun);
+      const stokBirim = gunlukMetinEsc(urun.Birim || 'Adet');
       return `<tr>
         <td class="c nw">${i + 1}</td>
         <td class="urun">${gunlukMetinEsc(urun.UrunAdi || '-')}</td>
         <td class="nw">${gunlukMetinEsc(urun.Barkod || '-')}</td>
         <td>${gunlukMetinEsc(urun.Kategori || '-')}</td>
-        <td class="c">${gunlukMetinEsc(urun.Birim || 'Adet')}</td>
+        <td class="c nw">${gunlukMetinEsc(ambalaj)}</td>
+        <td class="c">${gunlukMetinEsc(olcu)}</td>
+        <td class="c">${stokBirim}</td>
         <td class="r b">${miktar}</td>
         <td class="r">${alis ? paraTr(alis) : '-'}</td>
         <td class="r">${paraTr(satis)}</td>
@@ -221,7 +244,9 @@ function stokAlfabetikRaporDokumaniOlustur(rows) {
         <th>Ürün adı</th>
         <th>Barkod</th>
         <th>Kategori</th>
-        <th class="c">Birim</th>
+        <th class="c">Ambalaj</th>
+        <th class="c">Ölçü birimi</th>
+        <th class="c">Stok birimi</th>
         <th class="r">Miktar</th>
         <th class="r">Alış (₺)</th>
         <th class="r">Satış (₺)</th>
@@ -232,7 +257,7 @@ function stokAlfabetikRaporDokumaniOlustur(rows) {
         <th class="c">Hedef</th>
       </tr>
     </thead>
-    <tbody>${satirlar || '<tr><td colspan="13" class="c">Kayıt yok.</td></tr>'}</tbody>
+    <tbody>${satirlar || '<tr><td colspan="15" class="c">Kayıt yok.</td></tr>'}</tbody>
   </table>
   <div class="ozet">
     <div>Toplam stok alış değeri: <b>${paraTr(toplamAlisDeger)}</b></div>
@@ -647,7 +672,7 @@ function stokListeFiltrele(q) {
     const chkHucre = secilebilir
       ? `<td class="stok-sec-kolon text-center"><input type="checkbox" class="form-check-input stok-grup-chk" ${stokGrupSecimSet.has(Number(urun.StokID)) ? 'checked' : ''} onchange="stokGrupSecimToggle(${urun.StokID}, this.checked)" title="Gruplamak için seç" aria-label="Satırı seç"></td>`
       : '<td class="stok-sec-kolon"></td>';
-    return `<tr class="${siniflar}">
+    return `<tr class="${siniflar}" data-stok-id="${Number(urun.StokID)}">
         ${chkHucre}
         <td class="text-muted" style="font-size:0.8rem;">${urun.Barkod || '-'}</td>
         <td class="fw-semibold ${girintili ? 'ps-3' : ''}">${urunHucre}</td>
@@ -663,8 +688,6 @@ function stokListeFiltrele(q) {
   };
 
   const htmlParcalari = [];
-  const grupAciklama = document.getElementById('stokListeGrupAciklama');
-  if (grupAciklama) grupAciklama.classList.toggle('d-none', cokAmbalajGruplar.length === 0);
 
   if (cokAmbalajGruplar.length) {
     htmlParcalari.push(`<tr class="stok-bolum-baslik"><td colspan="${STOK_TABLO_COLSPAN}">
@@ -702,6 +725,13 @@ function stokListeFiltrele(q) {
   }
 
   tb.innerHTML = htmlParcalari.join('');
+  if (_stokListeAramaSecimIdx >= 0) {
+    const satirlar = stokListeAramaSatirlari();
+    if (_stokListeAramaSecimIdx >= satirlar.length) {
+      _stokListeAramaSecimIdx = satirlar.length ? satirlar.length - 1 : -1;
+    }
+    stokListeAramaSecimVurgula(_stokListeAramaSecimIdx);
+  }
 }
 
 async function stokMalzemeGrubuDuzenle(grupID) {
@@ -6104,14 +6134,114 @@ function stokListeModalGeriAcPlanla() {
   }, 100);
 }
 
+let _stokListeAramaSecimIdx = -1;
+
+function stokListeAramaSatirlari() {
+  const tb = document.getElementById('stokTabloGovdesi');
+  if (!tb) return [];
+  return [...tb.querySelectorAll('tr[data-stok-id]')];
+}
+
+function stokListeAramaSecimVurgula(idx) {
+  const satirlar = stokListeAramaSatirlari();
+  _stokListeAramaSecimIdx = idx;
+  satirlar.forEach((tr, i) => tr.classList.toggle('stok-arama-vurgu-satir', i === idx));
+  if (idx >= 0 && satirlar[idx]) satirlar[idx].scrollIntoView({ block: 'nearest' });
+}
+
+function stokListeAramaGuncelle(deger) {
+  _stokListeAramaSecimIdx = -1;
+  stokListeFiltrele(deger);
+}
+
+function stokListeAramaKeydown(ev) {
+  const input = document.getElementById('stokAraInput');
+  const satirlar = stokListeAramaSatirlari();
+  if (ev.key === 'ArrowDown') {
+    if (!satirlar.length) return;
+    ev.preventDefault();
+    const max = satirlar.length - 1;
+    const next = _stokListeAramaSecimIdx < 0 ? 0 : Math.min(_stokListeAramaSecimIdx + 1, max);
+    stokListeAramaSecimVurgula(next);
+    return;
+  }
+  if (ev.key === 'ArrowUp') {
+    if (!satirlar.length) return;
+    ev.preventDefault();
+    const next = _stokListeAramaSecimIdx <= 0 ? 0 : _stokListeAramaSecimIdx - 1;
+    stokListeAramaSecimVurgula(next);
+    return;
+  }
+  if (ev.key === 'Escape' || ev.key === 'Esc') {
+    if (String(input?.value || '').trim()) {
+      ev.preventDefault();
+      input.value = '';
+      stokListeAramaGuncelle('');
+    }
+    return;
+  }
+  if (ev.key !== 'Enter') return;
+  ev.preventDefault();
+  if (_stokListeAramaSecimIdx >= 0 && satirlar[_stokListeAramaSecimIdx]) {
+    const sid = Number(satirlar[_stokListeAramaSecimIdx].getAttribute('data-stok-id'));
+    if (sid) stokDuzenleModalAc(sid);
+    return;
+  }
+  if (satirlar.length === 1) {
+    const sid = Number(satirlar[0].getAttribute('data-stok-id'));
+    if (sid) stokDuzenleModalAc(sid);
+  }
+}
+
+function stokListeAramaOdakla() {
+  const input = document.getElementById('stokAraInput');
+  if (!input) return;
+  input.focus();
+  input.classList.remove('stok-arama-vurgu');
+  void input.offsetWidth;
+  input.classList.add('stok-arama-vurgu');
+  window.setTimeout(() => input.classList.remove('stok-arama-vurgu'), 1000);
+}
+
+function stokListeBilgiToggle() {
+  const panel = document.getElementById('stokListeBilgiPanel');
+  const btn = document.getElementById('stokListeBilgiBtn');
+  if (!panel) return;
+  const acik = panel.classList.toggle('acik');
+  if (btn) {
+    btn.classList.toggle('aktif', acik);
+    btn.setAttribute('aria-expanded', acik ? 'true' : 'false');
+  }
+  panel.setAttribute('aria-hidden', acik ? 'false' : 'true');
+}
+
+function stokListeBilgiKapat() {
+  const panel = document.getElementById('stokListeBilgiPanel');
+  const btn = document.getElementById('stokListeBilgiBtn');
+  if (!panel?.classList.contains('acik')) return;
+  panel.classList.remove('acik');
+  panel.setAttribute('aria-hidden', 'true');
+  if (btn) {
+    btn.classList.remove('aktif');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+}
+
 function stokListeAramaTemizle() {
   const inp = document.getElementById('stokAraInput');
   if (inp) inp.value = '';
+  _stokListeAramaSecimIdx = -1;
   if (typeof stokListeFiltrele === 'function') stokListeFiltrele('');
+  stokListeBilgiKapat();
 }
 
 document.getElementById('stokListeModal')?.addEventListener('hidden.bs.modal', () => {
   stokListeAramaTemizle();
+});
+
+document.getElementById('stokListeModal')?.addEventListener('shown.bs.modal', () => {
+  stokListeGruplamaArayuzKontrol();
+  window.setTimeout(() => stokListeAramaOdakla(), 80);
 });
 
 document.getElementById('stokEkleModal')?.addEventListener('hidden.bs.modal', () => {
