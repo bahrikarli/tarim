@@ -22,6 +22,7 @@ const {
 } = require('./lib/guncelleme-config');
 const { registerBackupRoutes } = require('./routes/backups');
 const { registerEfaturaEdmRoutes } = require('./routes/efatura-edm');
+const { edmGbAliasNormalize } = require('./lib/edm-efatura');
 require('./lib/env-yukle').envYukle();
 
 const app = express();
@@ -3830,7 +3831,11 @@ app.post('/api/ayarlar', async (req, res) => {
       .input('SirketVergiNo', sql.NVarChar(40), String(sirketVergiNo || '').trim().substring(0, 40) || null)
       .input('SirketTelefon', sql.NVarChar(40), String(sirketTelefon || '').trim().substring(0, 40) || null)
       .input('SirketAdres', sql.NVarChar(300), String(sirketAdres || '').trim().substring(0, 300) || null)
-      .input('EdmGbAlias', sql.NVarChar(200), String(edmGbAlias || '').trim().substring(0, 200) || null)
+      .input('EdmGbAlias', sql.NVarChar(200), (() => {
+        const ham = String(edmGbAlias || '').trim();
+        if (!ham) return null;
+        return edmGbAliasNormalize(ham).substring(0, 200) || null;
+      })())
       .query(`
         UPDATE SistemAyarlar
         SET OtomatikMakbuz = @OtomatikMakbuz,

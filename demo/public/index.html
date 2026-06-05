@@ -318,6 +318,85 @@
         #mdSatisAramaSonuclari .list-group-item.active {
             background: #e7f1ff;
         }
+        #musteriRecetePanelCalisma .recete-calisma-ust {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        #musteriRecetePanelCalisma .recete-calisma-etiket {
+            flex: 0 0 auto;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #64748b;
+            white-space: nowrap;
+        }
+        #musteriRecetePanelCalisma .recete-calisma-urun {
+            flex: 0 1 11rem;
+            min-width: 6.5rem;
+            max-width: 13rem;
+        }
+        #musteriRecetePanelCalisma .recete-calisma-dekar-wrap {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        #musteriRecetePanelCalisma .recete-calisma-dekar-lbl {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #64748b;
+            white-space: nowrap;
+        }
+        #musteriRecetePanelCalisma .recete-calisma-dekar {
+            flex: 0 0 4.25rem;
+            width: 4.25rem;
+            text-align: right;
+        }
+        #musteriRecetePanelCalisma .recete-calisma-sayac {
+            flex: 0 0 auto;
+            margin-left: auto;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.28rem 0.55rem;
+        }
+        #musteriRecetePanelCalisma .recete-arama-kutu { margin-top: 0.15rem; }
+        #musteriRecetePanelCalisma .recete-arama-grup .input-group-text {
+            background: linear-gradient(180deg, #2e7d32, #1b5e20);
+            color: #fff;
+            border-color: #1b5e20;
+            font-size: 1.1rem;
+        }
+        #musteriRecetePanelCalisma .recete-arama-inp {
+            border: 2px solid #43a047;
+            font-size: 1rem;
+            font-weight: 500;
+            background: #f8fdf9;
+            box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.25);
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        }
+        #musteriRecetePanelCalisma .recete-arama-inp::placeholder { color: #6c757d; font-weight: 400; }
+        #musteriRecetePanelCalisma .recete-arama-inp:focus,
+        #musteriRecetePanelCalisma .recete-arama-inp.recete-arama-aktif {
+            border-color: #1b5e20;
+            background: #fff;
+            box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.22);
+        }
+        #musteriRecetePanelCalisma .recete-arama-inp.recete-arama-vurgu {
+            animation: receteAramaVurgu 0.9s ease;
+        }
+        @keyframes receteAramaVurgu {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.22); }
+            50% { box-shadow: 0 0 0 0.35rem rgba(46, 125, 50, 0.35); }
+        }
+        #musteriRecetePanelCalisma .recete-arama-sonuc {
+            top: 100%;
+            left: 0;
+            margin-top: 0.2rem;
+            border-radius: 0.375rem;
+        }
         #musteriReceteAramaSonuclari {
             max-height: 220px;
             overflow-y: auto;
@@ -327,14 +406,353 @@
             box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
         }
         #musteriReceteAramaSonuclari.acik { display: block !important; }
-        #musteriReceteAramaSonuclari .list-group-item { cursor: pointer; font-size: 0.9rem; }
-        #musteriReceteAramaSonuclari .list-group-item:hover { background: #e8f5e9; }
+        #musteriReceteAramaSonuclari .list-group-item { font-size: 0.9rem; }
+        #musteriReceteAramaSonuclari .recete-arama-satir { cursor: default; }
+        #musteriReceteAramaSonuclari .recete-arama-sec { cursor: pointer; }
+        #musteriReceteAramaSonuclari .recete-arama-sec:hover,
+        #musteriReceteAramaSonuclari .recete-arama-satir.active {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+        #musteriReceteAramaSonuclari .recete-arama-satir.active .recete-arama-sec { font-weight: 600; }
+        #musteriReceteAramaSonuclari .recete-arama-ozel-btn {
+            font-size: 0.72rem;
+            padding: 0.2rem 0.45rem;
+            white-space: nowrap;
+        }
+        #musteriReceteAramaSonuclari .recete-arama-ozel-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
         #receteMalzemeHazirlaModal { z-index: 1105 !important; }
         #receteMalzemeHazirlaModal.show ~ .modal-backdrop:last-of-type { z-index: 1100 !important; }
         .recete-split { min-height: min(72vh, 640px); }
         .recete-split-sol { background: #f8faf8; max-height: min(72vh, 640px); overflow-y: auto; }
         .recete-split-sag { max-height: min(72vh, 640px); overflow-y: auto; background: #fff; }
-        .recete-sol-liste .list-group-item { border-left: 3px solid transparent; padding: 0.65rem 0.75rem; }
+        #musteriReceteModal .musteri-recete-dialog {
+            height: calc(100vh - 1.25rem);
+            max-height: calc(100vh - 1.25rem);
+            margin: 0.625rem auto;
+        }
+        #musteriReceteModal .modal-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #musteriReceteModal .modal-header {
+            flex: 0 0 auto;
+        }
+        #musteriReceteModal .modal-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        #musteriReceteModal .recete-liste-panel {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            background: #f8faf8;
+        }
+        #musteriReceteModal #musteriRecetePanelCalisma:not(.d-none) {
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+        .ozet-recete-dialog { max-width: min(920px, 96vw); }
+        #ozetReceteHizliModal .recete-sol-liste { max-height: min(62vh, 560px); overflow-y: auto; }
+        #ozetReceteKayitliListe .recete-ozet-tablo-grid {
+            display: grid;
+            grid-template-columns: minmax(12rem, 15rem) minmax(5rem, 7.5rem) 4.5rem minmax(0, 1fr) auto 2.5rem 3.5rem;
+            gap: 0.35rem 0.65rem;
+            align-items: center;
+            width: 100%;
+            min-width: 0;
+        }
+        #ozetReceteKayitliListe .recete-ozet-baslik {
+            padding: 0.4rem 0.55rem;
+            font-size: 0.66rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #94a3b8;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8faf8;
+            border-radius: 0.35rem 0.35rem 0 0;
+        }
+        #ozetReceteKayitliListe .recete-ozet-satir {
+            border-left: 3px solid transparent;
+            padding: 0.38rem 0.55rem;
+            text-align: left;
+        }
+        #ozetReceteKayitliListe .recete-ozet-satir:hover { background: #f8faf8; }
+        #ozetReceteKayitliListe .recete-ozet-satir.active {
+            border-left-color: #2e7d32;
+            background: linear-gradient(90deg, #f4fbf6 0%, #fff 100%);
+            color: #1b5e20;
+        }
+        #ozetReceteKayitliListe .recete-ozet-satir-icerik {
+            font-size: 0.78rem;
+            min-width: 0;
+        }
+        #ozetReceteKayitliListe .recete-ozet-hucre { min-width: 0; }
+        #ozetReceteKayitliListe .recete-ozet-hucre--musteri {
+            font-weight: 700;
+            color: #1e293b;
+        }
+        #ozetReceteKayitliListe .recete-ozet-hucre--urun {
+            font-weight: 600;
+            color: #1b5e20;
+        }
+        #ozetReceteKayitliListe .recete-ozet-dekar {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #1b5e20;
+            background: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            border-radius: 999px;
+            padding: 0.08rem 0.42rem;
+            white-space: nowrap;
+        }
+        #ozetReceteKayitliListe .recete-ozet-hucre--konum {
+            color: #64748b;
+            font-size: 0.72rem;
+        }
+        #ozetReceteKayitliListe .recete-ozet-hucre--meta {
+            color: #6c757d;
+            font-size: 0.68rem;
+            white-space: nowrap;
+            text-align: right;
+        }
+        #ozetReceteKayitliListe .recete-ozet-hucre--aksiyon { text-align: center; }
+        #ozetReceteKayitliListe .recete-ozet-hucre--durum { text-align: center; }
+        #ozetReceteKayitliListe .recete-ozet-satis {
+            display: inline-block;
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #0d47a1;
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 999px;
+            padding: 0.08rem 0.38rem;
+            white-space: nowrap;
+        }
+        @media (max-width: 767.98px) {
+            #ozetReceteKayitliListe .recete-ozet-tablo-grid {
+                grid-template-columns: minmax(9rem, 12rem) minmax(4rem, 6rem) 4rem auto 2.5rem 3rem;
+            }
+            #ozetReceteKayitliListe .recete-ozet-hucre--konum,
+            #ozetReceteKayitliListe .recete-ozet-baslik .recete-ozet-hucre--konum { display: none; }
+        }
+        #musteriReceteGenelToplam:not(:empty) {
+            border-top: 2px solid #2e7d32;
+            padding-top: 0.35rem;
+        }
+        #musteriRecetePanelCalisma.recete-calisma-panel:not(.d-none) {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        #musteriRecetePanelCalisma .recete-calisma-govde {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 0.75rem 1rem 0.5rem;
+        }
+        #musteriRecetePanelCalisma .recete-calisma-alt {
+            flex: 0 0 auto;
+            flex-shrink: 0;
+            border-top: 1px solid #dee2e6;
+            background: #fff;
+            padding: 0.5rem 1rem 0.75rem;
+            box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.06);
+        }
+        #musteriRecetePanelCalisma .recete-calisma-aksiyon {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 0.5rem;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.4rem;
+        }
+        #musteriRecetePanelCalisma .recete-calisma-aksiyon > .d-flex {
+            flex-wrap: nowrap;
+            flex-shrink: 0;
+        }
+        @media (max-width: 575.98px) {
+            #musteriRecetePanelCalisma .recete-calisma-aksiyon {
+                flex-wrap: wrap;
+            }
+            #musteriRecetePanelCalisma .recete-calisma-aksiyon > .d-flex {
+                flex-wrap: wrap;
+            }
+        }
+        .recete-sol-liste .list-group-item { border-left: 3px solid transparent; padding: 0.42rem 0.6rem; }
+        #musteriRecetePanelCalisma .recete-duzen-ust-bant {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            padding-bottom: 0.35rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-musteri-ozet {
+            flex: 1 1 auto;
+            min-width: 0;
+            text-align: center;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-musteri-ad {
+            font-weight: 700;
+            font-size: 0.92rem;
+            color: #1e293b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .recete-sol-kartlar {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+        .recete-sol-kart {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.55rem;
+            border-left: 3px solid transparent;
+            margin: 0;
+            padding: 0.55rem 0.65rem;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+            text-align: left;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        }
+        .recete-sol-kart:hover {
+            border-color: #b9dfc0;
+            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.1);
+        }
+        .recete-sol-kart.active {
+            border-left-color: #2e7d32;
+            border-color: #9ccc9c;
+            background: linear-gradient(145deg, #f4fbf6 0%, #e8f5e9 100%);
+            color: #1b5e20;
+            box-shadow: 0 2px 10px rgba(46, 125, 50, 0.12);
+        }
+        .recete-sol-kart-ust {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
+            margin-bottom: 0.25rem;
+        }
+        .recete-sol-kart-urun {
+            font-weight: 700;
+            font-size: 0.84rem;
+            color: #1b5e20;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .recete-sol-kart.active .recete-sol-kart-urun { color: #1b5e20; }
+        .recete-sol-kart-dekar {
+            flex: 0 0 auto;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #1b5e20;
+            background: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            border-radius: 999px;
+            padding: 0.12rem 0.45rem;
+            white-space: nowrap;
+        }
+        .recete-sol-kart.active .recete-sol-kart-dekar {
+            background: #fff;
+            border-color: #81c784;
+        }
+        .recete-sol-kart-musteri {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.2rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .recete-sol-kart-konum {
+            font-size: 0.68rem;
+            color: #64748b;
+            margin-bottom: 0.25rem;
+            line-height: 1.25;
+        }
+        .recete-sol-kart-konum-lbl { color: #94a3b8; }
+        .recete-sol-kart-ayrac { margin: 0 0.25rem; color: #cbd5e1; }
+        .recete-sol-kart-alt {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.25rem 0.5rem;
+            font-size: 0.67rem;
+            color: #6c757d;
+            border-top: 1px dashed #e9ecef;
+            padding-top: 0.3rem;
+            margin-top: 0.1rem;
+        }
+        .recete-sol-kart.active .recete-sol-kart-alt { border-top-color: #c8e6c9; }
+        .recete-sol-kart-tarih { white-space: nowrap; }
+        .recete-sol-kart-kalem {
+            margin-left: auto;
+            white-space: nowrap;
+        }
+        .recete-sol-kart-rozet {
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            border-radius: 999px;
+            padding: 0.1rem 0.4rem;
+        }
+        .recete-sol-kart-rozet--satis {
+            color: #0d47a1;
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+        }
+        .recete-liste-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.35rem 0.5rem;
+            margin-top: 0.15rem;
+            font-size: 0.7rem;
+            color: #6c757d;
+            line-height: 1.2;
+            min-width: 0;
+        }
+        .recete-liste-meta-konum {
+            flex: 1 1 auto;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem 0.5rem;
+        }
+        .recete-liste-meta-konum--1 .recete-liste-meta-hucre { flex: 1 1 0; }
+        .recete-liste-meta-konum--2 .recete-liste-meta-tarla { flex: 1.4 1 0; }
+        .recete-liste-meta-konum--2 .recete-liste-meta-hucre:not(.recete-liste-meta-tarla) { flex: 1 1 0; }
+        .recete-liste-meta-konum--3 .recete-liste-meta-hucre { flex: 1 1 0; }
+        .recete-liste-meta-konum--4 .recete-liste-meta-hucre { flex: 1 1 0; }
+        .recete-liste-meta-hucre {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .recete-liste-meta-lbl { color: #94a3b8; }
+        .recete-liste-meta-tarih { flex: 0 0 auto; white-space: nowrap; font-size: 0.68rem; }
         .recete-liste-detay {
             line-height: 1.35;
             word-break: break-word;
@@ -345,9 +763,6 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
-        #ozetReceteHizliModal .recete-split { min-height: min(58vh, 480px); }
-        #ozetReceteHizliModal .recete-split-sol,
-        #ozetReceteHizliModal .recete-split-sag { max-height: min(58vh, 480px); }
         .recete-birim-fiyat-inp,
         .recete-adet-inp {
             max-width: 4.25rem;
@@ -381,15 +796,57 @@
             padding-bottom: 0.75rem;
             margin-bottom: 1rem;
         }
-        #receteGoruntuleModal .recete-gor-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 1rem; font-size: 0.85rem; }
+        #receteGoruntuleModal .recete-gor-meta { font-size: 0.85rem; }
         #receteGoruntuleModal .recete-gor-meta .lbl { display: block; font-size: 0.75rem; color: #6c757d; margin-bottom: 2px; }
+        #receteGoruntuleModal .recete-gor-ust-satir {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.75rem 1.25rem;
+        }
+        #receteGoruntuleModal .recete-gor-musteri { flex: 2 1 0; min-width: 0; padding-right: 0.5rem; }
+        #receteGoruntuleModal .recete-gor-musteri strong { word-break: break-word; }
+        #receteGoruntuleModal .recete-gor-detay-grup {
+            flex: 3 1 0;
+            min-width: 0;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem 1rem;
+            align-items: end;
+        }
+        #receteGoruntuleModal .recete-gor-detay-no { text-align: right; }
         #receteGoruntuleModal .recete-gor-ozet { font-size: 0.8rem; color: #6c757d; margin-top: 0.5rem; }
         #receteGoruntuleModal .recete-rapor-satis { font-size: 0.8125rem; color: #0d6efd; margin-bottom: 0.5rem; }
-        #receteGoruntuleModal .recete-gor-tablo { table-layout: fixed; }
-        #receteGoruntuleModal .recete-gor-tablo col.col-amb { width: 38%; }
-        #receteGoruntuleModal .recete-gor-tablo col.col-adet { width: 12%; }
-        #receteGoruntuleModal .recete-gor-tablo col.col-birim { width: 25%; }
-        #receteGoruntuleModal .recete-gor-tablo col.col-tutar { width: 25%; }
+        #receteGoruntuleModal .recete-gor-malzeme-wrap {
+            border: 1px solid #e9ecef;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+        #receteGoruntuleModal .recete-gor-malzeme-tablo { table-layout: fixed; width: 100%; margin: 0; font-size: 0.8125rem; }
+        #receteGoruntuleModal .recete-gor-malzeme-tablo col.col-malzeme { width: 28%; }
+        #receteGoruntuleModal .recete-gor-malzeme-tablo col.col-amb { width: 22%; }
+        #receteGoruntuleModal .recete-gor-malzeme-tablo col.col-adet { width: 10%; }
+        #receteGoruntuleModal .recete-gor-malzeme-tablo col.col-birim { width: 20%; }
+        #receteGoruntuleModal .recete-gor-malzeme-tablo col.col-tutar { width: 20%; }
+        #receteGoruntuleModal .recete-gor-tablo th,
+        #receteGoruntuleModal .recete-gor-tablo td { padding: 0.32rem 0.65rem; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        #receteGoruntuleModal .recete-gor-malzeme-tablo thead th {
+            background: #f8fafc;
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        #receteGoruntuleModal .recete-malzeme-col {
+            vertical-align: top;
+            background: #f8fdf9;
+            border-right: 1px solid #eef2f6;
+        }
+        #receteGoruntuleModal .recete-malzeme-ad { font-weight: 700; font-size: 0.84rem; color: #1b5e20; line-height: 1.3; }
+        #receteGoruntuleModal .recete-malzeme-iht { font-size: 0.75rem; color: #6c757d; margin-top: 0.15rem; }
+        #receteGoruntuleModal .recete-malzeme-iht-lbl { font-weight: 600; color: #94a3b8; }
+        #receteGoruntuleModal .recete-malzeme-grup-bas td { border-top: 2px solid #e2e8f0; }
         #receteGoruntuleModal .recete-gor-tablo th.amb,
         #receteGoruntuleModal .recete-gor-tablo td.amb { text-align: left; }
         #receteGoruntuleModal .recete-gor-tablo th.num,
@@ -399,6 +856,39 @@
             white-space: nowrap;
         }
         #receteGoruntuleModal .recete-gor-tablo td.num.b { font-weight: 600; }
+        #receteGoruntuleModal .recete-malzeme-alt td {
+            background: #fafafa;
+            font-size: 0.78rem;
+            padding: 0.28rem 0.65rem;
+        }
+        #receteGoruntuleModal .recete-malzeme-alt-etiket { text-align: right; color: #6c757d; white-space: nowrap; }
+        #receteGoruntuleModal .recete-malzeme-alt-tutar { font-weight: 600; text-align: right !important; white-space: nowrap; }
+        #receteGoruntuleModal .recete-gor-alt {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem 1.25rem;
+            align-items: flex-end;
+            justify-content: space-between;
+            border-top: 2px solid #2e7d32;
+            padding-top: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        #receteGoruntuleModal .recete-gor-alt-sol { flex: 1 1 220px; min-width: 0; }
+        #receteGoruntuleModal .recete-gor-dozaj-not {
+            font-size: 0.78rem;
+            color: #495057;
+            line-height: 1.45;
+        }
+        #receteGoruntuleModal .recete-dozaj-baslik {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6c757d;
+            margin-bottom: 0.35rem;
+        }
+        #receteGoruntuleModal .recete-dozaj-satir { margin-bottom: 0.2rem; }
+        #receteGoruntuleModal .recete-dozaj-urun { font-weight: 600; color: #1b5e20; }
         #receteGoruntuleModal .recete-gor-not {
             background: #f8f9fa;
             border-radius: 0.375rem;
@@ -406,33 +896,29 @@
             font-size: 0.8125rem;
             margin-bottom: 1rem;
         }
-        #receteGoruntuleModal .recete-gor-malzeme {
-            border: 1px solid #e9ecef;
-            border-radius: 0.375rem;
-            margin-bottom: 0.65rem;
-            overflow: hidden;
+        #receteGoruntuleModal .recete-gor-konum { display: grid; gap: 0.35rem 1rem; align-items: start; }
+        #receteGoruntuleModal .recete-gor-konum--1 { grid-template-columns: 1fr; }
+        #receteGoruntuleModal .recete-gor-konum--2 { grid-template-columns: repeat(2, 1fr); }
+        #receteGoruntuleModal .recete-gor-konum--3 { grid-template-columns: repeat(3, 1fr); }
+        #receteGoruntuleModal .recete-gor-konum--4 { grid-template-columns: repeat(4, 1fr); }
+        #receteGoruntuleModal .recete-gor-konum-hucre { min-width: 0; }
+        #receteGoruntuleModal .recete-gor-konum-hucre .lbl {
+            display: block;
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-bottom: 2px;
         }
-        #receteGoruntuleModal .recete-gor-malzeme-ust {
-            background: #f1f8f2;
-            padding: 0.45rem 0.65rem;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-        #receteGoruntuleModal .recete-gor-malzeme-ust small { font-weight: 400; color: #6c757d; }
-        #receteGoruntuleModal .recete-gor-tablo { width: 100%; margin: 0; font-size: 0.8125rem; }
-        #receteGoruntuleModal .recete-gor-tablo th,
-        #receteGoruntuleModal .recete-gor-tablo td { padding: 0.35rem 0.65rem; border-bottom: 1px solid #f0f0f0; }
-        #receteGoruntuleModal .recete-gor-tablo th { background: #fff; color: #6c757d; font-weight: 500; }
-        #receteGoruntuleModal .recete-gor-malzeme-alt {
-            text-align: right;
-            padding: 0.35rem 0.65rem;
-            background: #fafafa;
-            font-size: 0.8125rem;
+        #receteGoruntuleModal .recete-gor-konum-hucre strong { font-weight: 600; word-break: break-word; }
+        #receteGoruntuleModal .recete-gor-konum-ozel {
+            margin-top: 0.35rem;
+            font-size: 0.78rem;
+            color: #495057;
+            word-break: break-word;
         }
         #receteGoruntuleModal .recete-gor-genel {
-            border-top: 2px solid #2e7d32;
-            padding-top: 0.75rem;
+            flex: 0 0 auto;
             text-align: right;
+            min-width: 130px;
         }
         #receteGoruntuleModal .recete-gor-genel .tutar { font-size: 1.15rem; font-weight: 700; color: #1b5e20; }
         #musteriReceteSolListe .recete-liste-aksiyon .btn,
@@ -467,19 +953,22 @@
             box-shadow: 0 1px 4px rgba(46, 125, 50, 0.12);
         }
         .recete-fatura-kalem-ust { min-height: auto; }
-        .recete-dozaj-ihtiyac { margin-top: 0.35rem; font-size: 0.88rem; line-height: 1.45; }
-        .recete-dozaj-satir, .recete-ihtiyac-satir { margin-top: 0.2rem; }
-        .recete-etiket-dozaj, .recete-etiket-ihtiyac {
-            display: inline-block;
-            min-width: 6.5rem;
-            font-size: 0.72rem;
+        .recete-kart-baslik { font-size: 0.9rem; line-height: 1.25; }
+        .recete-dozaj-ihtiyac--kompakt {
+            margin-top: 0.1rem;
+            font-size: 0.74rem;
+            line-height: 1.25;
+            color: #6c757d;
+        }
+        .recete-etiket-inline {
+            font-size: 0.65rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.03em;
-            color: #6c757d;
+            color: #94a3b8;
         }
-        .recete-etiket-ihtiyac { color: #1b5e20; }
-        .recete-ihtiyac-satir strong { font-size: 1.05rem; }
+        .recete-etiket-inline--iht { color: #1b5e20; }
+        .recete-meta-ayrac { margin: 0 0.3rem; color: #cbd5e1; }
         .recete-fatura-secim { line-height: 1.4; }
         .recete-fatura-not { background: #fffbf0; }
         .recete-plan-kompakt-fatura .recete-plan-fatura thead th {
@@ -489,6 +978,172 @@
         .recete-plan-tablo td { padding: 0.2rem 0.35rem; vertical-align: middle; }
         .recete-plan-tablo tr + tr td { border-top: 1px dashed #dee2e6; }
         .recete-plan-fatura { font-size: 0.8rem; }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-wrap {
+            border: 1px solid #e9ecef;
+            border-radius: 0.375rem;
+            overflow: visible;
+            margin-bottom: 0.35rem;
+            padding: 0.45rem 0.55rem 0 0;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo { overflow: visible; border-radius: 0.375rem; }
+        #musteriRecetePanelCalisma .recete-duzen-grup { position: relative; }
+        #musteriRecetePanelCalisma .recete-duzen-grup-ayrac .recete-malzeme-grup-bas td { border-top: 2px solid #e2e8f0; }
+        #musteriRecetePanelCalisma .recete-malzeme-col { overflow: visible; }
+        #musteriRecetePanelCalisma .recete-duzen-sil-cikti {
+            position: absolute;
+            top: 0;
+            right: 0.1rem;
+            transform: translateY(-55%);
+            z-index: 5;
+            width: 1.35rem;
+            height: 1.35rem;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 1px solid #f1aeb5;
+            background: #fff;
+            color: #dc3545;
+            font-size: 0.72rem;
+            line-height: 1;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.14);
+            cursor: pointer;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-sil-cikti:hover {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo { table-layout: fixed; width: 100%; margin: 0; font-size: 0.8125rem; }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo col.col-malzeme { width: 30%; }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo col.col-amb { width: 24%; }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo col.col-adet { width: 8%; }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo col.col-birim { width: 14%; }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo col.col-tutar { width: 14%; }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo col.col-aksiyon { width: 3.5rem; }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo thead th {
+            background: #f8fafc;
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 0.32rem 0.65rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo td {
+            padding: 0.28rem 0.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+        #musteriRecetePanelCalisma .recete-malzeme-col {
+            vertical-align: top;
+            background: #f8fdf9;
+            border-right: 1px solid #eef2f6;
+        }
+        #musteriRecetePanelCalisma .recete-malzeme-ad { font-weight: 700; font-size: 0.84rem; color: #1b5e20; line-height: 1.3; }
+        #musteriRecetePanelCalisma .recete-malzeme-iht { font-size: 0.75rem; color: #6c757d; margin-top: 0.15rem; }
+        #musteriRecetePanelCalisma .recete-malzeme-grup-bas td { border-top: 2px solid #e2e8f0; }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo th.amb,
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo td.amb { text-align: left; }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo th.num,
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo td.num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo thead th.num {
+            padding-right: 0.75rem;
+            padding-left: 0.35rem;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo td.num.p-1 {
+            padding-left: 0.35rem;
+            padding-right: 0.75rem;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo td.num.b {
+            padding-right: 0.75rem;
+            padding-left: 0.35rem;
+            font-weight: 600;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo th.aksiyon,
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo td.recete-duzen-aksiyon-hucre,
+        #musteriRecetePanelCalisma .recete-duzen-malzeme-tablo td.recete-duzen-aksiyon-bos {
+            width: 3.5rem;
+            padding: 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-aksiyon-hucre {
+            position: relative;
+            overflow: visible;
+            vertical-align: middle;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-aksiyon-bos {
+            background: #fafafa;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-num-inp-wrap {
+            display: flex;
+            justify-content: flex-end;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-amb-sil {
+            position: absolute;
+            top: 0;
+            right: 0.1rem;
+            transform: translate(-1.5rem, 1.1rem);
+            z-index: 4;
+            width: 1.2rem;
+            height: 1.2rem;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 1px solid #f1aeb5;
+            background: #fff;
+            color: #dc3545;
+            font-size: 0.58rem;
+            line-height: 1;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+            cursor: pointer;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-amb-sil:hover {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+        }
+        #musteriRecetePanelCalisma .recete-malzeme-alt td { background: #fafafa; font-size: 0.78rem; padding: 0.22rem 0.5rem; }
+        #musteriRecetePanelCalisma .recete-malzeme-alt-etiket {
+            text-align: right;
+            color: #6c757d;
+            white-space: nowrap;
+            padding-right: 0.75rem;
+        }
+        #musteriRecetePanelCalisma .recete-malzeme-alt-tutar {
+            font-weight: 600;
+            text-align: right !important;
+            padding-right: 0.75rem !important;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-fire td { background: #fffbf0; border-bottom: 1px solid #f0f0f0; }
+        #musteriRecetePanelCalisma .recete-duzen-genel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            border-top: none;
+            padding-top: 0;
+            margin-top: 0;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-genel-toplam {
+            display: flex;
+            align-items: baseline;
+            gap: 0.75rem;
+            margin-left: auto;
+        }
+        #musteriRecetePanelCalisma .recete-duzen-genel .lbl { font-size: 0.8rem; color: #6c757d; }
+        #musteriRecetePanelCalisma .recete-duzen-genel .tutar { font-size: 1.1rem; font-weight: 700; color: #1b5e20; }
+        #musteriReceteEkBilgiModal { z-index: 1085 !important; }
+        #musteriReceteEkBilgiModal.show ~ .modal-backdrop:last-of-type { z-index: 1080 !important; }
         .recete-plan-fatura thead th {
             font-size: 0.7rem;
             font-weight: 600;
@@ -596,6 +1251,61 @@
             margin: 0;
         }
         .stok-liste-tablo tr.stok-tekil-satir td { background: #fff; }
+        #stokListeModal .stok-arama-grup .input-group-text {
+            background: linear-gradient(180deg, #2e7d32, #1b5e20);
+            color: #fff;
+            border-color: #1b5e20;
+            font-size: 1.1rem;
+        }
+        #stokListeModal .stok-arama-inp {
+            border: 2px solid #43a047;
+            font-size: 1rem;
+            font-weight: 500;
+            background: #f8fdf9;
+            box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.25);
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        }
+        #stokListeModal .stok-arama-inp::placeholder { color: #6c757d; font-weight: 400; }
+        #stokListeModal .stok-arama-inp:focus,
+        #stokListeModal .stok-arama-inp.stok-arama-aktif {
+            border-color: #1b5e20;
+            background: #fff;
+            box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.22);
+        }
+        #stokListeModal .stok-arama-inp.stok-arama-vurgu {
+            animation: stokAramaVurgu 0.9s ease;
+        }
+        @keyframes stokAramaVurgu {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.22); }
+            50% { box-shadow: 0 0 0 0.35rem rgba(46, 125, 50, 0.35); }
+        }
+        #stokListeModal .stok-arama-bilgi-btn {
+            border: 2px solid #43a047;
+            border-left: none;
+            background: #f8fdf9;
+            color: #2e7d32;
+            padding: 0 0.85rem;
+            font-size: 1.15rem;
+        }
+        #stokListeModal .stok-arama-bilgi-btn:hover,
+        #stokListeModal .stok-arama-bilgi-btn.aktif {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border-color: #1b5e20;
+        }
+        #stokListeModal .stok-liste-bilgi-panel {
+            display: none;
+            margin-bottom: 0.65rem;
+            padding: 0.65rem 0.85rem;
+            border-radius: 0.5rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+        #stokListeModal .stok-liste-bilgi-panel.acik { display: block; }
+        #stokListeModal .stok-liste-tablo tr.stok-arama-vurgu-satir td {
+            background: #e8f5e9 !important;
+            box-shadow: inset 0 0 0 1px #a5d6a7;
+        }
         .stok-liste-tablo tr.stok-grup-alt-satir .stok-ambalaj-etiket {
             display: inline-block;
             font-size: 0.7rem;
@@ -649,17 +1359,265 @@
             font-size: 1.15rem;
             font-weight: 700;
         }
-        .musteri-vurgulu-ad {
-            padding: 0.42rem 0.6rem;
-            border-radius: 10px;
-            background: linear-gradient(90deg, rgba(13,110,253,0.12), rgba(99,102,241,0.12));
-            border: 1px solid rgba(13,110,253,0.25);
-            font-weight: 800;
-            font-size: 1.1rem;
-            letter-spacing: 0.02em;
-            color: #0b3b8a;
+        #musteriDetayModal #mdHareketGovde tr td {
+            border-color: #eef2f6;
+            vertical-align: middle;
+        }
+        #musteriDetayModal .md-cari-grup-bas td {
+            border-top: 3px solid #64748b !important;
+            padding-top: 0.55rem;
+        }
+        #musteriDetayModal .md-cari-grup-bit td {
+            border-bottom: 3px solid #64748b !important;
+            padding-bottom: 0.55rem;
+        }
+        #musteriDetayModal .md-cari-devam td {
+            border-top: none !important;
+        }
+        #musteriDetayModal .md-cari-devam td:first-child,
+        #musteriDetayModal .md-cari-devam td:nth-child(2) {
+            background: #f8fafc;
+        }
+        #musteriDetayModal .md-cari-urun {
+            font-size: 0.8rem;
+            color: #475569;
+        }
+        #musteriDetayModal .md-cari-tahsilat-satir td {
+            background: rgba(25, 135, 84, 0.07);
+        }
+        #musteriDetayModal .btn-satis-mavi {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
+        }
+        #musteriDetayModal .btn-satis-mavi:hover,
+        #musteriDetayModal .btn-satis-mavi:focus {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+            color: #fff;
+        }
+        #musteriDetayModal .md-cari-sag {
+            display: flex;
+            flex-direction: column;
+            min-height: min(68vh, 600px);
+            max-height: min(72vh, 640px);
+        }
+        #musteriDetayModal .md-cari-tablo-alan {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+        }
+        #musteriDetayModal .md-cari-tablo-scroll {
+            max-height: 100%;
+            height: 100%;
+            overflow-y: auto;
+        }
+        #musteriDetayModal .md-cari-aksiyon-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+            padding: 0.6rem 0.85rem;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+        #musteriDetayModal .md-cari-aksiyon-etiket {
+            font-size: 0.68rem;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+        #musteriDetayModal .md-cari-aksiyon-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            justify-content: flex-end;
+        }
+        #musteriDetayModal .md-cari-aksiyon-btns .btn {
+            font-weight: 600;
+            font-size: 0.84rem;
+            padding: 0.42rem 0.85rem;
+            border-radius: 9px;
+        }
+        #musteriDetayModal .md-cari-tablo-kart {
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+        }
+        #musteriDetayModal .md-cari-tablo-kart thead th {
+            background: #f8fafc !important;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            border-bottom: 2px solid #e2e8f0 !important;
+            padding: 0.58rem 0.65rem;
+            white-space: nowrap;
+        }
+        #musteriDetayModal .md-cari-ozet-alt {
+            flex: 0 0 auto;
+            margin-top: 0.7rem;
+            padding: 0.75rem 0.15rem 0.15rem;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, #f1f5f9 100%);
+            border-top: 1px solid #dbe3ec;
+            box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.1);
+            position: sticky;
+            bottom: 0;
+            z-index: 6;
+            border-radius: 0 0 12px 12px;
+        }
+        #musteriDetayModal .md-cari-kpi {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.7rem 0.9rem;
+            height: 100%;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+        }
+        #musteriDetayModal .md-cari-kpi-satis { border-left: 4px solid #3b82f6; }
+        #musteriDetayModal .md-cari-kpi-odeme { border-left: 4px solid #16a34a; }
+        #musteriDetayModal .md-cari-kpi-bakiye { border-left: 4px solid #dc2626; }
+        #musteriDetayModal .md-cari-kpi-ikon {
+            width: 42px;
+            height: 42px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
+            flex-shrink: 0;
+        }
+        #musteriDetayModal .md-cari-kpi-satis .md-cari-kpi-ikon { background: #eff6ff; color: #2563eb; }
+        #musteriDetayModal .md-cari-kpi-odeme .md-cari-kpi-ikon { background: #f0fdf4; color: #16a34a; }
+        #musteriDetayModal .md-cari-kpi-bakiye .md-cari-kpi-ikon { background: #fef2f2; color: #dc2626; }
+        #musteriDetayModal .md-cari-kpi-etiket {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #94a3b8;
+            line-height: 1.2;
+        }
+        #musteriDetayModal .md-cari-kpi-deger {
+            font-size: 1.12rem;
+            font-weight: 800;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+        }
+        #musteriDetayModal .md-cari-kpi-satis .md-cari-kpi-deger { color: #1d4ed8; }
+        #musteriDetayModal .md-cari-kpi-odeme .md-cari-kpi-deger { color: #15803d; }
+        #musteriDetayModal .md-cari-kpi-bakiye .md-cari-kpi-deger { color: #b91c1c; }
+        .md-musteri-kart {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.07);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .md-musteri-kart-ust {
+            padding: 1.15rem 1rem 0.9rem;
+            background: linear-gradient(160deg, #eff6ff 0%, #f8fafc 60%, #fff 100%);
+            border-bottom: 1px solid #e8eef4;
+            text-align: center;
+        }
+        .md-musteri-avatar {
+            width: 54px;
+            height: 54px;
+            margin: 0 auto 0.7rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32);
+        }
+        .md-musteri-ad {
+            font-size: 1.02rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            line-height: 1.35;
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+        }
+        #musteriDetayModal #mdTurBadge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.35em 0.75em;
+            border-radius: 999px;
+        }
+        .md-musteri-kart-govde {
+            padding: 0.9rem 1rem 0.55rem;
             flex: 1;
+        }
+        .md-musteri-baslik {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+        }
+        .md-musteri-liste { margin: 0; }
+        .md-musteri-satir {
+            display: grid;
+            grid-template-columns: 6.8rem 1fr;
+            gap: 0.25rem 0.55rem;
+            padding: 0.45rem 0;
+            border-bottom: 1px solid #f1f5f9;
+            align-items: start;
+        }
+        .md-musteri-satir:last-child { border-bottom: none; }
+        .md-musteri-satir dt {
+            margin: 0;
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.76rem;
+            line-height: 1.35;
+        }
+        .md-musteri-satir dd {
+            margin: 0;
+            color: #1e293b;
+            font-weight: 500;
+            font-size: 0.84rem;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .md-musteri-kart-alt {
+            padding: 0.7rem 1rem 1rem;
+            border-top: 1px solid #f1f5f9;
+            background: #fafbfc;
+        }
+        .md-musteri-duzenle-btn {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.86rem;
+            padding: 0.52rem 0.75rem;
+            border-radius: 10px;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+        .md-musteri-duzenle-btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            color: #0f172a;
         }
         .form-modern {
             background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
@@ -860,6 +1818,135 @@
             background-color: #ffc107 !important;
             color: #000 !important;
             font-weight: 600;
+        }
+        #musteriListeModal .ml-modal-content {
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        #musteriListeModal .ml-modal-header {
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            color: #fff;
+            border-bottom: 0;
+            padding: 1rem 1.25rem;
+        }
+        #musteriListeModal .ml-modal-footer {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 0.65rem 1.25rem;
+        }
+        #musteriListeModal .ml-ust-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            padding: 0.65rem 0.9rem;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            margin-bottom: 0.75rem;
+        }
+        #musteriListeModal .ml-ust-etiket {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: #94a3b8;
+        }
+        #musteriListeModal .ml-ust-sayi {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #475569;
+            margin-top: 0.15rem;
+        }
+        #musteriListeModal .btn-ml-yeni {
+            background: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.86rem;
+            padding: 0.45rem 0.95rem;
+            border-radius: 9px;
+        }
+        #musteriListeModal .btn-ml-yeni:hover {
+            background: #0b5ed7;
+            border-color: #0a58ca;
+            color: #fff;
+        }
+        #musteriListeModal .ml-ara-wrap {
+            margin-bottom: 0.75rem;
+        }
+        #musteriListeModal .ml-ara-grup {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            background: #fff;
+        }
+        #musteriListeModal .ml-ara-grup .input-group-text {
+            background: #f8fafc;
+            border: 0;
+            color: #64748b;
+            padding-left: 1rem;
+        }
+        #musteriListeModal .ml-ara-grup .form-control {
+            border: 0;
+            font-size: 0.9rem;
+            padding: 0.65rem 0.85rem;
+        }
+        #musteriListeModal .ml-ara-grup .form-control:focus {
+            box-shadow: none;
+        }
+        #musteriListeModal .ml-tablo-kart {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+        }
+        #musteriListeModal .ml-tablo-kart thead th {
+            background: #f8fafc !important;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            border-bottom: 2px solid #e2e8f0 !important;
+            padding: 0.6rem 0.75rem;
+            white-space: nowrap;
+        }
+        #musteriListeModal .ml-liste-satir {
+            cursor: pointer;
+            transition: background 0.12s ease;
+        }
+        #musteriListeModal .ml-liste-satir:hover {
+            background: #f0f9ff !important;
+        }
+        #musteriListeModal .ml-liste-satir td {
+            padding: 0.72rem 0.75rem;
+            vertical-align: middle;
+            border-color: #f1f5f9;
+        }
+        #musteriListeModal .ml-liste-no {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+        #musteriListeModal .ml-liste-ad {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 0.9rem;
+        }
+        #musteriListeModal .ml-liste-bakiye {
+            font-weight: 800;
+            font-size: 0.92rem;
+            white-space: nowrap;
+        }
+        #musteriListeModal .badge-musteri-gercek,
+        #musteriListeModal .badge-musteri-tuzel {
+            font-size: 0.68rem;
+            padding: 0.35em 0.65em;
+            border-radius: 999px;
         }
     </style>
 </head>
@@ -1111,33 +2198,21 @@
 </div>
 
         <div class="modal fade" id="ozetReceteHizliModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-            <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width:960px;">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable ozet-recete-dialog">
                 <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header text-white border-0 py-3" style="background:linear-gradient(135deg,#1565c0,#42a5f5);">
                         <h5 class="modal-title mb-0"><i class="fa-solid fa-flask me-2"></i>Reçete oluştur</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
                     </div>
-                    <div class="modal-body p-0">
-                        <div class="recete-split row g-0">
-                            <aside class="col-12 col-md-5 recete-split-sol border-end">
-                                <div class="p-3">
-                                    <div class="small text-muted fw-semibold text-uppercase mb-2" style="letter-spacing:.04em;font-size:.7rem;">Kayıtlı reçeteler</div>
-                                    <input type="text" class="form-control form-control-sm mb-2" id="ozetReceteListeAra" placeholder="Müşteri, ürün, tarla, mevkii…" autocomplete="off"
-                                        oninput="ozetReceteKayitliListeYukle()">
-                                    <div id="ozetReceteKayitliListe" class="recete-sol-liste">
-                                        <p class="text-muted small mb-0 py-2">Yükleniyor…</p>
-                                    </div>
-                                </div>
-                            </aside>
-                            <section class="col-12 col-md-7 recete-split-sag d-flex align-items-center justify-content-center">
-                                <div class="p-4 py-5 text-center w-100" style="max-width:360px;">
-                                    <i class="fa-solid fa-seedling fa-3x text-success mb-3 opacity-50"></i>
-                                    <p class="text-muted small mb-4">Soldan kayıtlı reçeteyi <strong>düzenleyin</strong> (kalem) veya <strong>silin</strong>. Yeni reçete için aşağıdaki düğmeyi kullanın.</p>
-                                    <button type="button" class="btn btn-success btn-lg w-100 shadow-sm" onclick="ozetReceteYeniModalAc()">
-                                        <i class="fa-solid fa-plus me-2"></i>Yeni reçete oluştur
-                                    </button>
-                                </div>
-                            </section>
+                    <div class="modal-body p-3">
+                        <button type="button" class="btn btn-success w-100 shadow-sm mb-3" onclick="ozetReceteYeniModalAc()">
+                            <i class="fa-solid fa-plus me-2"></i>Yeni reçete oluştur
+                        </button>
+                        <div class="small text-muted fw-semibold text-uppercase mb-2" style="letter-spacing:.04em;font-size:.7rem;">Kayıtlı reçeteler</div>
+                        <input type="text" class="form-control form-control-sm mb-2" id="ozetReceteListeAra" placeholder="Müşteri, ürün, tarla, mevkii…" autocomplete="off"
+                            oninput="ozetReceteKayitliListeYukle()">
+                        <div id="ozetReceteKayitliListe" class="recete-sol-liste">
+                            <p class="text-muted small mb-0 py-2">Yükleniyor…</p>
                         </div>
                     </div>
                     <div class="modal-footer border-0 px-4 pb-3 pt-0">
@@ -1406,10 +2481,17 @@
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body px-3 py-2">
-                        <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
-                            <div class="input-group input-group-sm flex-grow-1" style="max-width:400px;">
-                                <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                                <input type="text" class="form-control border-start-0" id="stokAraInput" placeholder="Ürün, barkod veya kategori ara..." oninput="stokListeFiltrele(this.value)">
+                        <div class="d-flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
+                            <div class="stok-arama-kutu flex-grow-1" style="min-width:min(100%, 22rem); max-width:32rem;">
+                                <div class="input-group input-group-lg stok-arama-grup">
+                                    <span class="input-group-text"><i class="fa-solid fa-barcode"></i></span>
+                                    <input type="text" class="form-control stok-arama-inp" id="stokAraInput" placeholder="ÜRÜN, BARKOD VEYA KATEGORİ ARA…" autocomplete="off" aria-label="Stokta ara"
+                                        oninput="stokListeAramaGuncelle(this.value)" onkeydown="stokListeAramaKeydown(event)"
+                                        onfocus="this.classList.add('stok-arama-aktif')" onblur="this.classList.remove('stok-arama-aktif')">
+                                    <button type="button" class="btn stok-arama-bilgi-btn" id="stokListeBilgiBtn" onclick="stokListeBilgiToggle()" title="Kullanım notları" aria-expanded="false" aria-controls="stokListeBilgiPanel">
+                                        <i class="fa-solid fa-circle-info"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="d-flex flex-wrap gap-2">
                                 <button type="button" class="btn btn-sm btn-outline-primary shadow-sm text-nowrap" onclick="stokBarkodEtiketYazdir()">
@@ -1426,13 +2508,16 @@
                                 </button>
                             </div>
                         </div>
-                        <p class="small text-muted mb-1" id="stokListeToplamMetin">Toplam <strong class="text-dark">0</strong> ürün bulunmaktadır.</p>
-                        <div id="stokListeEskiUyari" class="alert alert-warning small py-2 mb-2 d-none">
-                            <i class="fa-solid fa-triangle-exclamation me-1"></i><strong>Liste eski sürüm.</strong> Solda <strong>Seç</strong> sütunu ve altta solda <strong>Seçilenleri grupla</strong> görünmüyorsa tarayıcıda <strong>Ctrl+F5</strong> yapın; EXE kullanıyorsanız kökten <code>node server.js</code> veya <code>BASLAT.bat</code> ile açın.
+                        <div id="stokListeBilgiPanel" class="stok-liste-bilgi-panel" aria-hidden="true">
+                            <div id="stokListeEskiUyari" class="alert alert-warning small py-2 mb-2 d-none">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i><strong>Liste eski sürüm.</strong> Solda <strong>Seç</strong> sütunu ve altta solda <strong>Seçilenleri grupla</strong> görünmüyorsa tarayıcıda <strong>Ctrl+F5</strong> yapın; EXE kullanıyorsanız kökten <code>node server.js</code> veya <code>BASLAT.bat</code> ile açın.
+                            </div>
+                            <p class="small text-primary mb-2"><i class="fa-solid fa-object-group me-1"></i>Soldaki <strong>Seç</strong> kutusunu işaretleyin (en az 2 satır), sonra <strong>Seçilenleri grupla</strong> — fiyatlar satırdan gelir, litre/ölçüyü siz yazarsınız.</p>
+                            <p class="small text-muted mb-2">Gübre ve ilaçların tamamı <strong>Yeni malzeme</strong> ile eklenmeli; tek ambalajlı sarf için <strong>Genel stok</strong> yeterli.</p>
+                            <p class="small text-success mb-0"><i class="fa-solid fa-layer-group me-1"></i>Yeşil kutular <strong>çok ambalajlı malzeme</strong> grubudur; altındaki satırlar her ambalaj boyutudur.</p>
+                            <p class="small text-muted mt-2 mb-0"><i class="fa-solid fa-keyboard me-1"></i>Aramada <strong>↑ ↓</strong> ile satır seçin, <strong>Enter</strong> ile düzenleyin, <strong>Esc</strong> ile aramayı temizleyin.</p>
                         </div>
-                        <p class="small text-primary mb-2"><i class="fa-solid fa-object-group me-1"></i>Soldaki <strong>Seç</strong> kutusunu işaretleyin (en az 2 satır), sonra <strong>Seçilenleri grupla</strong> — fiyatlar satırdan gelir, litre/ölçüyü siz yazarsınız.</p>
-                        <p class="small text-muted mb-2">Gübre ve ilaçların tamamı <strong>Yeni malzeme</strong> ile eklenmeli; tek ambalajlı sarf için <strong>Genel stok</strong> yeterli.</p>
-                        <p class="small text-success mb-2 d-none" id="stokListeGrupAciklama"><i class="fa-solid fa-layer-group me-1"></i>Yeşil kutular <strong>çok ambalajlı malzeme</strong> grubudur; altındaki satırlar her ambalaj boyutudur.</p>
+                        <p class="small text-muted mb-2" id="stokListeToplamMetin">Toplam <strong class="text-dark">0</strong> ürün bulunmaktadır.</p>
                         <div class="table-responsive">
                             <table class="table table-hover table-sm align-middle mb-0 stok-liste-tablo" style="font-size:0.85rem;">
                                 <thead>
@@ -1499,38 +2584,44 @@
         </div>
 
         <div class="modal fade" id="musteriListeModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title"><i class="fa-solid fa-users me-2"></i>Müşteri / Cari Yönetimi</h5>
+            <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: min(1180px, 96vw);">
+                <div class="modal-content border-0 shadow-lg ml-modal-content">
+                    <div class="modal-header ml-modal-header">
+                        <div>
+                            <h5 class="modal-title mb-1"><i class="fa-solid fa-users me-2"></i>Müşteri / Cari Yönetimi</h5>
+                            <small class="text-white-50">Müşteri kayıtları ve cari hesaplar</small>
+                        </div>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="text-secondary mb-0">Müşteri Listesi</h6>
-                            <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#musteriEkleModal">
-                                <i class="fa-solid fa-user-plus"></i> Yeni Müşteri
+                    <div class="modal-body bg-light">
+                        <div class="ml-ust-bar">
+                            <div>
+                                <div class="ml-ust-etiket">Müşteri listesi</div>
+                                <div class="ml-ust-sayi" id="musteriListeSayac">—</div>
+                            </div>
+                            <button type="button" class="btn btn-ml-yeni" data-bs-toggle="modal" data-bs-target="#musteriEkleModal">
+                                <i class="fa-solid fa-user-plus me-1"></i>Yeni Müşteri
                             </button>
                         </div>
-                        <div class="mb-3">
-                            <div class="input-group shadow-sm">
-                                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass"></i></span>
-                                <input type="text" class="form-control" id="musteriAraInput" placeholder="No, ad, firma, T.C., vergi no veya telefon ara..." oninput="musteriListeAraGuncelle(this.value)">
+                        <div class="ml-ara-wrap">
+                            <div class="input-group ml-ara-grup">
+                                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                                <input type="text" class="form-control" id="musteriAraInput" placeholder="No, ad, firma, T.C., vergi no veya telefon ara…" oninput="musteriListeAraGuncelle(this.value)">
                             </div>
                         </div>
-                        <div class="card shadow-sm border-0">
+                        <div class="card ml-tablo-kart">
                             <div class="card-body p-0">
                                 <div class="table-responsive">
-                                    <table class="table table-hover table-striped mb-0">
-                                        <thead class="table-light">
+                                    <table class="table table-hover mb-0 align-middle">
+                                        <thead>
                                             <tr>
                                                 <th>No</th>
                                                 <th>Tür</th>
                                                 <th>Unvan / Ad Soyad</th>
                                                 <th>T.C. / Vergi No</th>
                                                 <th>Telefon</th>
-                                                <th>Bakiye (₺)</th>
-                                                <th class="text-end">İşlemler</th>
+                                                <th class="text-end">Bakiye</th>
+                                                <th class="text-end">İşlem</th>
                                             </tr>
                                         </thead>
                                         <tbody id="musteriTabloGovdesi"></tbody>
@@ -1539,8 +2630,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <div class="modal-footer ml-modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Kapat</button>
                     </div>
                 </div>
             </div>
@@ -1573,76 +2664,98 @@
                     <div class="modal-body bg-light">
                         <div class="row g-3">
                             <div class="col-lg-3">
-                                <div class="musteri-ozet-kutu h-100">
-                                    <div class="mb-2">
-                                        <div id="mdVurguluAd" class="musteri-vurgulu-ad mb-0">Müşteri</div>
+                                <div class="md-musteri-kart h-100">
+                                    <div class="md-musteri-kart-ust">
+                                        <div class="md-musteri-avatar" aria-hidden="true">
+                                            <i id="mdMusteriAvatarIkon" class="fa-solid fa-user"></i>
+                                        </div>
+                                        <div id="mdVurguluAd" class="md-musteri-ad">Müşteri</div>
+                                        <span id="mdTurBadge" class="badge bg-secondary">—</span>
                                     </div>
-                                    <div class="small mb-2"><span id="mdTurBadge" class="badge bg-secondary">—</span></div>
-                                    <div class="small text-muted mb-1">Kişi bilgileri</div>
-                                    <div class="small" id="mdGercekAdSatir"><strong>Ad Soyad:</strong> <span id="mdAdSoyadGoster">-</span></div>
-                                    <div class="small d-none" id="mdFirmaSatir"><strong>Firma ünvanı:</strong> <span id="mdFirma">-</span></div>
-                                    <div class="small d-none" id="mdYetkiliSatir"><strong>Yetkili:</strong> <span id="mdYetkili">-</span></div>
-                                    <div class="small d-none" id="mdTcSatir"><strong>T.C. No:</strong> <span id="mdTcNo">-</span></div>
-                                    <div class="small d-none" id="mdVergiSatir"><strong>Vergi No:</strong> <span id="mdVergiNo">-</span></div>
-                                    <div class="small d-none" id="mdTanimAdiSatir"><strong>Tanıma adı:</strong> <span id="mdTanimAdi">-</span></div>
-                                    <div class="small"><strong>Telefon:</strong> <span id="mdTelefon">-</span></div>
-                                    <div class="small"><strong>İl / İlçe:</strong> <span id="mdIlIlce">-</span></div>
-                                    <div class="small"><strong>Mahalle:</strong> <span id="mdMahalle">-</span></div>
-                                    <div class="small"><strong>Adres:</strong> <span id="mdAdres">-</span></div>
-                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mt-3" onclick="musteriDuzenleModalAc()">
-                                        <i class="fa-solid fa-pen-to-square me-1"></i>Düzenle
-                                    </button>
+                                    <div class="md-musteri-kart-govde">
+                                        <div class="md-musteri-baslik">Kişi bilgileri</div>
+                                        <dl class="md-musteri-liste">
+                                            <div class="md-musteri-satir" id="mdGercekAdSatir">
+                                                <dt>Ad Soyad</dt>
+                                                <dd id="mdAdSoyadGoster">-</dd>
+                                            </div>
+                                            <div class="md-musteri-satir d-none" id="mdFirmaSatir">
+                                                <dt>Firma ünvanı</dt>
+                                                <dd id="mdFirma">-</dd>
+                                            </div>
+                                            <div class="md-musteri-satir d-none" id="mdYetkiliSatir">
+                                                <dt>Yetkili</dt>
+                                                <dd id="mdYetkili">-</dd>
+                                            </div>
+                                            <div class="md-musteri-satir d-none" id="mdTcSatir">
+                                                <dt>T.C. No</dt>
+                                                <dd id="mdTcNo">-</dd>
+                                            </div>
+                                            <div class="md-musteri-satir d-none" id="mdVergiSatir">
+                                                <dt>Vergi No</dt>
+                                                <dd id="mdVergiNo">-</dd>
+                                            </div>
+                                            <div class="md-musteri-satir d-none" id="mdTanimAdiSatir">
+                                                <dt>Tanım adı</dt>
+                                                <dd id="mdTanimAdi">-</dd>
+                                            </div>
+                                            <div class="md-musteri-satir">
+                                                <dt>Telefon</dt>
+                                                <dd id="mdTelefon">-</dd>
+                                            </div>
+                                            <div class="md-musteri-satir">
+                                                <dt>İl / İlçe</dt>
+                                                <dd id="mdIlIlce">-</dd>
+                                            </div>
+                                            <div class="md-musteri-satir">
+                                                <dt>Mahalle</dt>
+                                                <dd id="mdMahalle">-</dd>
+                                            </div>
+                                            <div class="md-musteri-satir">
+                                                <dt>Adres</dt>
+                                                <dd id="mdAdres">-</dd>
+                                            </div>
+                                        </dl>
+                                    </div>
+                                    <div class="md-musteri-kart-alt">
+                                        <button type="button" class="btn md-musteri-duzenle-btn" onclick="musteriDuzenleModalAc()">
+                                            <i class="fa-solid fa-pen-to-square me-1"></i>Düzenle
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-lg-9">
-                                <div class="row g-2 mb-2">
-                                    <div class="col-md-4 col-6">
-                                        <div class="musteri-ozet-kutu text-center h-100">
-                                            <div class="etiket">Toplam satış</div>
-                                            <div class="deger text-primary" id="mdToplamSatis">0.00 ₺</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 col-6">
-                                        <div class="musteri-ozet-kutu text-center h-100">
-                                            <div class="etiket">Toplam ödeme</div>
-                                            <div class="deger text-success" id="mdToplamOdeme">0.00 ₺</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 col-12">
-                                        <div class="musteri-ozet-kutu text-center h-100">
-                                            <div class="etiket">Kalan bakiye</div>
-                                            <div class="deger text-danger" id="mdKalanBakiye">0.00 ₺</div>
-                                        </div>
+                            <div class="col-lg-9 md-cari-sag">
+                                <div class="md-cari-aksiyon-bar flex-shrink-0 mb-2">
+                                    <div class="md-cari-aksiyon-etiket">Cari işlemler</div>
+                                    <div class="md-cari-aksiyon-btns">
+                                        <button type="button" class="btn btn-outline-success" onclick="musteriReceteModalAc()">
+                                            <i class="fa-solid fa-flask me-1"></i>Reçeteler
+                                        </button>
+                                        <button type="button" class="btn btn-warning" onclick="musteriIadeModalAc()">
+                                            <i class="fa-solid fa-rotate-left me-1"></i>İade Al
+                                        </button>
+                                        <button type="button" class="btn btn-success" onclick="musteriTahsilatModalAc()">
+                                            <i class="fa-solid fa-money-bill-transfer me-1"></i>Ödeme Al
+                                        </button>
+                                        <button type="button" class="btn btn-satis-mavi position-relative" onclick="musteriSatisModalAc()">
+                                            <i class="fa-solid fa-cart-plus me-1"></i>Satış Yap
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" data-musteri-sepet-badge data-sepet-badge-metin="short">0</span>
+                                        </button>
                                     </div>
                                 </div>
-                                <div class="d-flex justify-content-end flex-wrap gap-2 mb-2">
-                                    <button type="button" class="btn btn-outline-success" onclick="musteriReceteModalAc()">
-                                        <i class="fa-solid fa-flask me-1"></i>Reçeteler
-                                    </button>
-                                    <button type="button" class="btn btn-warning" onclick="musteriIadeModalAc()">
-                                        <i class="fa-solid fa-rotate-left me-1"></i>İade Al
-                                    </button>
-                                    <button type="button" class="btn btn-success" onclick="musteriTahsilatModalAc()">
-                                        <i class="fa-solid fa-money-bill-transfer me-1"></i>Ödeme Al
-                                    </button>
-                                    <button type="button" class="btn btn-primary position-relative" onclick="musteriSatisModalAc()">
-                                        <i class="fa-solid fa-cart-plus me-1"></i>Satış Yap
-                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" data-musteri-sepet-badge data-sepet-badge-metin="short">0</span>
-                                    </button>
-                                </div>
-                                <div class="card shadow-sm border-0">
-                                    <div class="card-body p-0">
-                                        <div class="table-responsive" style="max-height: min(58vh, 520px);">
+                                <div class="card md-cari-tablo-kart md-cari-tablo-alan">
+                                    <div class="card-body p-0 h-100">
+                                        <div class="table-responsive md-cari-tablo-scroll">
                                             <table class="table table-sm table-hover mb-0 align-middle">
                                                 <thead class="table-light sticky-top">
                                                     <tr>
-                                                        <th>Tarih</th>
+                                                        <th>Tarih / saat</th>
                                                         <th>Tür</th>
-                                                        <th class="text-end">Toplam</th>
-                                                        <th class="text-end">Ödeme</th>
+                                                        <th>Ürün / hizmet</th>
+                                                        <th class="text-center">Adet</th>
+                                                        <th class="text-end">Birim</th>
+                                                        <th class="text-end">Tutar</th>
                                                         <th class="text-end">Yürüyen bakiye</th>
-                                                        <th>Ödeme şekli</th>
-                                                        <th>İşlemi yapan</th>
                                                         <th class="text-end">İşlem</th>
                                                     </tr>
                                                 </thead>
@@ -1653,6 +2766,37 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="md-cari-ozet-alt">
+                                    <div class="row g-2">
+                                        <div class="col-md-4 col-6">
+                                            <div class="md-cari-kpi md-cari-kpi-satis">
+                                                <div class="md-cari-kpi-ikon"><i class="fa-solid fa-cart-shopping"></i></div>
+                                                <div>
+                                                    <div class="md-cari-kpi-etiket">Toplam satış</div>
+                                                    <div class="md-cari-kpi-deger" id="mdToplamSatis">0.00 ₺</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 col-6">
+                                            <div class="md-cari-kpi md-cari-kpi-odeme">
+                                                <div class="md-cari-kpi-ikon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                                                <div>
+                                                    <div class="md-cari-kpi-etiket">Toplam ödeme</div>
+                                                    <div class="md-cari-kpi-deger" id="mdToplamOdeme">0.00 ₺</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 col-12">
+                                            <div class="md-cari-kpi md-cari-kpi-bakiye">
+                                                <div class="md-cari-kpi-ikon"><i class="fa-solid fa-scale-balanced"></i></div>
+                                                <div>
+                                                    <div class="md-cari-kpi-etiket">Kalan bakiye</div>
+                                                    <div class="md-cari-kpi-deger" id="mdKalanBakiye">0.00 ₺</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1660,8 +2804,27 @@
             </div>
         </div>
 
+        <div class="modal fade" id="efaturaKesModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fa-solid fa-file-invoice me-2"></i>e-Fatura / e-Arşiv</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                    </div>
+                    <div class="modal-body" id="efaturaKesModalGovde">
+                        <p class="text-muted mb-0">Yükleniyor…</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                        <button type="button" class="btn btn-success d-none" id="efaturaGoruntuleBtn" onclick="efaturaGoruntuleAc()"><i class="fa-solid fa-file-invoice me-1"></i>Fatura görüntüle</button>
+                        <button type="button" class="btn btn-primary" id="efaturaKesGonderBtn" onclick="efaturaSatisKesGonder()">Gönder</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="modal fade" id="musteriReceteModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width:min(1180px,96vw);">
+            <div class="modal-dialog modal-xl modal-dialog-centered musteri-recete-dialog" style="max-width:min(1180px,96vw);">
                 <div class="modal-content border-0 shadow">
                     <div class="modal-header text-white py-3" style="background: linear-gradient(90deg, #1b5e20, #43a047);">
                         <div>
@@ -1676,90 +2839,109 @@
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                     </div>
-                    <div class="modal-body p-0">
-                        <div class="recete-split row g-0">
-                            <aside class="col-12 col-md-4 col-lg-3 recete-split-sol border-end">
-                                <div class="p-3">
-                                    <button type="button" class="btn btn-success w-100 shadow-sm" onclick="musteriReceteYeniModalAc()">
-                                        <i class="fa-solid fa-plus me-2"></i>Yeni reçete
-                                    </button>
-                                    <div class="small text-muted mt-3 mb-2 fw-semibold text-uppercase" style="letter-spacing:.04em;font-size:.7rem;">Kayıtlı reçeteler</div>
-                                    <div id="musteriReceteSolListe" class="recete-sol-liste">
-                                        <p class="text-muted small mb-0 py-2">Yükleniyor…</p>
-                                    </div>
+                    <div class="modal-body p-0 d-flex flex-column">
+                        <div id="musteriReceteListePanel" class="recete-liste-panel">
+                            <div class="p-3">
+                                <button type="button" class="btn btn-success w-100 shadow-sm" onclick="musteriReceteYeniModalAc()">
+                                    <i class="fa-solid fa-plus me-2"></i>Yeni reçete
+                                </button>
+                                <div class="small text-muted mt-3 mb-2 fw-semibold text-uppercase" style="letter-spacing:.04em;font-size:.7rem;">Kayıtlı reçeteler</div>
+                                <div id="musteriReceteSolListe" class="recete-sol-liste">
+                                    <p class="text-muted small mb-0 py-2">Yükleniyor…</p>
                                 </div>
-                            </aside>
-                            <section class="col-12 col-md-8 col-lg-9 recete-split-sag">
-                                <div id="musteriReceteSagBos" class="recete-sag-bos p-4">
-                                    <i class="fa-solid fa-seedling fa-2x mb-3 text-success opacity-50"></i>
-                                    <p class="mb-2 fw-semibold text-secondary">Reçete seçin veya yeni oluşturun</p>
-                                    <p class="small mb-0">Soldan kayıtlı bir reçeteye tıklayın veya <strong>Yeni reçete</strong> ile başlayın.</p>
-                                </div>
-                                <div id="musteriRecetePanelCalisma" class="d-none p-3">
-                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2" id="musteriReceteOzetBar">—</span>
-                                        <span class="small text-muted" id="musteriRecetePanelEtiket">Yeni reçete</span>
-                                    </div>
-                                    <div class="row g-2 mb-3 align-items-end">
-                                        <div class="col-md-5">
-                                            <label class="form-label small mb-0 fw-semibold">Tarım ürünü</label>
-                                            <select class="form-select form-select-sm" id="musteriReceteUrunIDCalisma" onchange="musteriReceteUrunDekarDegisti()"></select>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label class="form-label small mb-0 fw-semibold">Dekar</label>
-                                            <input type="number" class="form-control form-control-sm" id="musteriReceteDekarCalisma" min="0.01" step="0.01" onchange="musteriReceteUrunDekarDegisti()">
-                                        </div>
-                                    </div>
-                                    <label class="form-label fw-semibold small mb-1"><i class="fa-solid fa-barcode me-1"></i>Stoktan malzeme ekle (ad veya barkod)</label>
-                                    <div class="position-relative mb-3">
-                                        <input type="text" class="form-control" id="musteriReceteArama" placeholder="Ürün adı veya barkod okutun…" autocomplete="off"
-                                            oninput="musteriReceteAramaGuncelle(this.value)" onkeydown="musteriReceteAramaKeydown(event)">
-                                        <div id="musteriReceteAramaSonuclari" class="list-group position-absolute w-100 mt-1 shadow-sm" style="z-index:1050;display:none;max-height:220px;overflow:auto;"></div>
-                                    </div>
-                                    <div id="musteriReceteSatirlar" class="mb-3"></div>
-                                    <div id="musteriReceteTarlaWrap" class="ozet-recete-istege-bagli mb-3">
-                                        <div class="small text-muted mb-2"><i class="fa-solid fa-map-location-dot me-1 opacity-75"></i>Tarla bilgisi <span class="fw-normal">(isteğe bağlı)</span></div>
-                                        <div class="mb-2">
-                                            <label class="form-label mb-1" for="musteriReceteTarlaAdi">Tarla adı</label>
-                                            <input type="text" class="form-control form-control-sm" id="musteriReceteTarlaAdi" maxlength="120" placeholder="Örn. Kuzey parsel…">
-                                        </div>
-                                        <div class="row g-2 mb-2">
-                                            <div class="col-4">
-                                                <label class="form-label mb-1" for="musteriReceteMevki">Mevkii</label>
-                                                <input type="text" class="form-control form-control-sm" id="musteriReceteMevki" maxlength="80" placeholder="Köy">
-                                            </div>
-                                            <div class="col-4">
-                                                <label class="form-label mb-1" for="musteriReceteAda">Ada</label>
-                                                <input type="text" class="form-control form-control-sm" id="musteriReceteAda" maxlength="40" placeholder="No">
-                                            </div>
-                                            <div class="col-4">
-                                                <label class="form-label mb-1" for="musteriReceteParsel">Parsel</label>
-                                                <input type="text" class="form-control form-control-sm" id="musteriReceteParsel" maxlength="40" placeholder="No">
-                                            </div>
-                                        </div>
-                                        <div class="mb-0">
-                                            <label class="form-label mb-1" for="musteriReceteAciklama">Özel açıklama</label>
-                                            <textarea class="form-control form-control-sm" id="musteriReceteAciklama" rows="2" maxlength="400"
-                                                placeholder="Konum veya uygulama notu…"></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex flex-wrap gap-2 justify-content-between border-top pt-3">
-                                        <button type="button" class="btn btn-success" id="musteriReceteKaydetBtn" onclick="musteriReceteKaydet()">
-                                            <i class="fa-solid fa-floppy-disk me-1"></i>Kaydet
-                                        </button>
-                                        <div class="d-flex flex-wrap gap-2">
-                                            <button type="button" class="btn btn-outline-primary" onclick="musteriReceteSepeteEkleAktif()">
-                                                <i class="fa-solid fa-cart-plus me-1"></i>Sepete ekle
-                                            </button>
-                                            <button type="button" class="btn btn-outline-dark" onclick="musteriReceteYazdir()">
-                                                <i class="fa-solid fa-print me-1"></i>Yazdır
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div id="musteriReceteSagDetay" class="d-none p-3"></div>
-                            </section>
+                            </div>
                         </div>
+                        <div id="musteriRecetePanelCalisma" class="d-none recete-calisma-panel">
+                            <div class="recete-calisma-govde">
+                                <div class="recete-duzen-ust-bant mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="musteriReceteListeyeDon()">
+                                        <i class="fa-solid fa-arrow-left me-1"></i>Liste
+                                    </button>
+                                    <div class="recete-duzen-musteri-ozet min-w-0">
+                                        <div class="recete-duzen-musteri-ad" id="musteriReceteCalismaMusteriAd">Müşteri</div>
+                                        <div class="recete-duzen-recete-no small text-muted" id="musteriReceteCalismaReceteNo"></div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger d-none" id="musteriReceteSilBtn" onclick="musteriReceteAktifSil()" title="Reçeteyi sil">
+                                        <i class="fa-solid fa-trash me-1"></i>Sil
+                                    </button>
+                                </div>
+                                <div class="recete-calisma-ust mb-2">
+                                    <span class="recete-calisma-etiket" id="musteriRecetePanelEtiket">Yeni reçete</span>
+                                    <select class="form-select form-select-sm recete-calisma-urun" id="musteriReceteUrunIDCalisma" aria-label="Tarım ürünü" onchange="musteriReceteUrunDekarDegisti()"></select>
+                                    <span class="recete-calisma-dekar-wrap">
+                                        <span class="recete-calisma-dekar-lbl">dekar</span>
+                                        <input type="number" class="form-control form-control-sm recete-calisma-dekar" id="musteriReceteDekarCalisma" min="0.01" step="0.01" aria-label="Dekar" placeholder="10" onchange="musteriReceteUrunDekarDegisti()">
+                                    </span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle recete-calisma-sayac" id="musteriReceteOzetBar">0 malzeme</span>
+                                </div>
+                                        <div class="recete-arama-kutu mb-2" id="musteriReceteAramaKutu">
+                                            <div class="input-group input-group-lg recete-arama-grup position-relative">
+                                                <span class="input-group-text"><i class="fa-solid fa-barcode"></i></span>
+                                                <input type="text" class="form-control recete-arama-inp" id="musteriReceteArama" placeholder="Malzeme adı veya barkod okutun…" autocomplete="off" aria-label="Stoktan malzeme ekle"
+                                                    oninput="musteriReceteAramaGuncelle(this.value)" onkeydown="musteriReceteAramaKeydown(event)" onfocus="this.classList.add('recete-arama-aktif')" onblur="this.classList.remove('recete-arama-aktif')">
+                                                <div id="musteriReceteAramaSonuclari" class="list-group position-absolute w-100 shadow-sm recete-arama-sonuc" style="z-index:1050;display:none;max-height:220px;overflow:auto;"></div>
+                                            </div>
+                                        </div>
+                                        <div id="musteriReceteSatirlar" class="recete-calisma-liste"></div>
+                                    </div>
+                                    <div class="recete-calisma-alt">
+                                        <div id="musteriReceteGenelToplam"></div>
+                                        <div class="recete-calisma-aksiyon">
+                                            <button type="button" class="btn btn-success" id="musteriReceteKaydetBtn" onclick="musteriReceteKaydet()">
+                                                <i class="fa-solid fa-floppy-disk me-1"></i>Kaydet
+                                            </button>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <button type="button" class="btn btn-outline-primary" onclick="musteriReceteSepeteEkleAktif()">
+                                                    <i class="fa-solid fa-cart-plus me-1"></i>Sepete ekle
+                                                </button>
+                                                <button type="button" class="btn btn-outline-dark" onclick="musteriReceteYazdir()">
+                                                    <i class="fa-solid fa-print me-1"></i>Yazdır
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                        <div id="musteriReceteSagDetay" class="d-none p-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="musteriReceteEkBilgiModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header py-2 border-bottom">
+                        <h6 class="modal-title mb-0"><i class="fa-solid fa-map-location-dot me-2 text-success"></i>Ek bilgiler</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small text-muted mb-3">Tarla ve konum bilgisi isteğe bağlıdır; rapor ve yazdırmada görünür.</p>
+                        <div class="mb-3">
+                            <label class="form-label mb-1" for="musteriReceteTarlaAdi">Tarla adı</label>
+                            <input type="text" class="form-control form-control-sm" id="musteriReceteTarlaAdi" maxlength="120" placeholder="Örn. Kuzey parsel…">
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <label class="form-label mb-1" for="musteriReceteMevki">Mevkii</label>
+                                <input type="text" class="form-control form-control-sm" id="musteriReceteMevki" maxlength="80" placeholder="Köy">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label mb-1" for="musteriReceteAda">Ada</label>
+                                <input type="text" class="form-control form-control-sm" id="musteriReceteAda" maxlength="40" placeholder="No">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label mb-1" for="musteriReceteParsel">Parsel</label>
+                                <input type="text" class="form-control form-control-sm" id="musteriReceteParsel" maxlength="40" placeholder="No">
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label mb-1" for="musteriReceteAciklama">Özel açıklama</label>
+                            <textarea class="form-control form-control-sm" id="musteriReceteAciklama" rows="3" maxlength="400"
+                                placeholder="Konum veya uygulama notu…"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-success btn-sm" data-bs-dismiss="modal">Tamam</button>
                     </div>
                 </div>
             </div>
@@ -3086,6 +4268,13 @@
                                     <label class="form-label">Adres</label>
                                     <textarea class="form-control" id="ayrSirketAdres" rows="2" maxlength="300"></textarea>
                                 </div>
+                                <hr class="my-3">
+                                <h6 class="fw-bold mb-2"><i class="fa-solid fa-file-invoice me-1"></i>e-Fatura (EDM)</h6>
+                                <div class="mb-2">
+                                    <label class="form-label">EDM gönderici etiketi (GB)</label>
+                                    <input type="text" class="form-control font-monospace small" id="ayrEdmGbAlias" maxlength="200" placeholder="urn:mail:defaultgb@...">
+                                    <div class="form-text">EDM test portalı veya entegratörden alınır. e-Fatura / e-Arşiv için zorunlu.</div>
+                                </div>
                             </div>
                             <div class="col-lg-5 ayarlar-modal-sag p-3 p-md-4">
                                 <h6 class="fw-bold mb-2"><i class="fa-solid fa-database me-1 text-primary"></i>Yedekleme</h6>
@@ -3700,10 +4889,10 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/utils.js?v=1.0.62"></script>
-    <script src="js/navigation.js?v=1.0.62"></script>
+    <script src="js/utils.js?v=1.0.64"></script>
+    <script src="js/navigation.js?v=1.0.64"></script>
     <script src="js/tanimlamalar.js?v=9"></script>
-    <script src="js/recete.js?v=49"></script>
-    <script src="app.js?v=1.0.62"></script>
+    <script src="js/recete.js?v=92"></script>
+    <script src="app.js?v=1.0.64"></script>
 </body>
 </html>
