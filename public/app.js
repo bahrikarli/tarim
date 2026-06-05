@@ -1229,19 +1229,39 @@ function musteriListeSatirHtml(musteri) {
   const turBadge = musteriTurBadgeHtml(tuzel, true);
   const alt = musteriGorunenAlt(musteri);
   const adHucre = alt
-    ? `<div class="fw-bold text-dark">${gunlukMetinEsc(musteriGorunenAd(musteri))}</div><div class="small text-muted">${gunlukMetinEsc(alt)}</div>`
-    : `<span class="fw-bold text-dark">${gunlukMetinEsc(musteriGorunenAd(musteri))}</span>`;
-  return `<tr onclick="musteriDetayModalAc(${musteri.MusteriID})" style="cursor: pointer;" title="Tıkla: cari hareketler">
-    <td class="align-middle fw-bold text-muted">#${musteri.MusteriID}</td>
-    <td class="align-middle">${turBadge}</td>
-    <td class="align-middle">${adHucre}</td>
-    <td class="align-middle text-nowrap">${gunlukMetinEsc(musteriKimlikNo(musteri))}</td>
-    <td class="align-middle">${musteri.Telefon || '-'}</td>
-    <td class="align-middle fw-bold ${bakiyeRenk}">${musteri.Bakiye ? musteri.Bakiye.toFixed(2) : '0.00'}</td>
-    <td class="align-middle text-end">
-      <button type="button" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); musteriSil(${musteri.MusteriID})"><i class="fa-solid fa-trash"></i></button>
+    ? `<div class="ml-liste-ad">${gunlukMetinEsc(musteriGorunenAd(musteri))}</div><div class="small text-muted">${gunlukMetinEsc(alt)}</div>`
+    : `<span class="ml-liste-ad">${gunlukMetinEsc(musteriGorunenAd(musteri))}</span>`;
+  const bakiye = musteriDetayParaFmt(Number(musteri.Bakiye || 0));
+  return `<tr class="ml-liste-satir" onclick="musteriDetayModalAc(${musteri.MusteriID})" title="Tıkla: cari hareketler">
+    <td><span class="ml-liste-no">#${musteri.MusteriID}</span></td>
+    <td>${turBadge}</td>
+    <td>${adHucre}</td>
+    <td class="text-nowrap small text-secondary">${gunlukMetinEsc(musteriKimlikNo(musteri))}</td>
+    <td class="small">${gunlukMetinEsc(musteri.Telefon || '—')}</td>
+    <td class="text-end ml-liste-bakiye ${bakiyeRenk}">${bakiye}</td>
+    <td class="text-end">
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); musteriSil(${musteri.MusteriID})" title="Sil"><i class="fa-solid fa-trash"></i></button>
     </td>
   </tr>`;
+}
+
+function musteriListeSayacGuncelle(gosterilen, toplam, aranan) {
+  const el = document.getElementById('musteriListeSayac');
+  if (!el) return;
+  if (!toplam) {
+    el.textContent = 'Kayıt yok';
+    return;
+  }
+  const arama = String(aranan || '').trim();
+  if (arama) {
+    el.textContent = `${gosterilen} sonuç (${toplam} kayıt içinde)`;
+    return;
+  }
+  if (toplam > gosterilen) {
+    el.textContent = `${gosterilen} / ${toplam} müşteri gösteriliyor`;
+    return;
+  }
+  el.textContent = `${toplam} müşteri`;
 }
 
 const MUSTERI_LISTE_BOS_LIMIT = 100;
@@ -1256,6 +1276,7 @@ function musteriListeFiltrele(q) {
   if (!liste.length) {
     tabloGovdesi.innerHTML =
       '<tr><td colspan="7" class="text-center text-muted p-4">Henüz hiç müşteri eklenmemiş.</td></tr>';
+    musteriListeSayacGuncelle(0, 0, aranan);
     return;
   }
 
@@ -1274,6 +1295,7 @@ function musteriListeFiltrele(q) {
   if (!filtreli.length) {
     tabloGovdesi.innerHTML =
       '<tr><td colspan="7" class="text-center text-muted p-4">Aramaya uygun müşteri bulunamadı.</td></tr>';
+    musteriListeSayacGuncelle(0, liste.length, aranan);
     return;
   }
 
@@ -1286,6 +1308,7 @@ function musteriListeFiltrele(q) {
       : '');
 
   tabloGovdesi.innerHTML = filtreli.map((m) => musteriListeSatirHtml(m)).join('') + fazla;
+  musteriListeSayacGuncelle(filtreli.length, liste.length, aranan);
 }
 
 async function musteriKaydet(event) {
@@ -2092,6 +2115,338 @@ function musteriYuruyenBakiyeMap(hareketler) {
   return map;
 }
 
+let efaturaAktifHareketID = null;
+
+function efaturaDurumBadgeHtml(h) {
+  const durum = String(h.EfaturaDurum || '').trim();
+  if (!durum) return '';
+  if (durum === 'Gonderildi') {
+    const no = String(h.EfaturaNo || '').trim();
+    const tip = String(h.EfaturaTip || '').trim();
+    const etiket = tip === 'EARSIV' ? 'e-Arşiv' : 'e-Fatura';
+    return `<div class="small mt-1"><span class="badge bg-success">${etiket}${no ? ` · ${gunlukMetinEsc(no)}` : ''}</span></div>`;
+  }
+  if (durum === 'Hata') {
+    const hata = String(h.EfaturaHata || 'Hata').trim();
+    return `<div class="small mt-1"><span class="badge bg-danger" title="${gunlukMetinEsc(hata)}">e-Fatura hata</span></div>`;
+  }
+  return '';
+}
+
+function efaturaSatisBtnHtml(h) {
+  const satisMi = String(h.Tur || '').toLowerCase() === 'satis';
+  if (!satisMi) return '';
+  const durum = String(h.EfaturaDurum || '').trim();
+  if (durum === 'Gonderildi') {
+    return `<button type="button" class="btn btn-sm btn-outline-success me-1" onclick="efaturaSatisGoruntule(${h.HareketID})" title="Kesilen faturayı görüntüle">Fatura</button>`;
+  }
+  return `<button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="efaturaSatisKesAc(${h.HareketID})" title="e-Fatura veya e-Arşiv kes">e-Fatura</button>`;
+}
+
+function efaturaModalBaslik(metin) {
+  const el = document.querySelector('#efaturaKesModal .modal-title');
+  if (el) el.innerHTML = `<i class="fa-solid fa-file-invoice me-2"></i>${gunlukMetinEsc(metin || 'e-Fatura / e-Arşiv')}`;
+}
+
+function efaturaOnizleHtml(o, opts = {}) {
+  const tipLabel = o.tip === 'EARSIV' ? 'e-Arşiv Fatura' : 'e-Fatura';
+  const resmiGorunum = !!(opts.sonuc || opts.saltGoruntule);
+  const baslikAlt = resmiGorunum ? 'Kesilmiş fatura' : `${tipLabel} önizleme`;
+  const kdv = o.kdvOzet || {};
+  const kalemler = Array.isArray(o.kalemler) ? o.kalemler : [];
+  const satirlar = kalemler.map((k) => `
+    <tr>
+      <td>${gunlukMetinEsc(k.urunAdi)}</td>
+      <td class="text-end">${k.miktar}</td>
+      <td class="text-end text-nowrap">${musteriDetayParaFmt(k.birimFiyat)}</td>
+      <td class="text-end text-nowrap fw-semibold">${musteriDetayParaFmt(k.satirTutar)}</td>
+    </tr>`).join('');
+  const engelHtml = !opts.sonuc && !opts.saltGoruntule && !o.kesilebilir && (o.engeller || []).length
+    ? `<ul class="small text-danger mb-3">${o.engeller.map((e) => `<li>${gunlukMetinEsc(e)}</li>`).join('')}</ul>`
+    : '';
+  const faturaBilgi = (o.mevcutFaturaNo || o.faturaNo)
+    ? `<div class="alert alert-success py-2 small mb-3">
+        <div><strong>Fatura no:</strong> ${gunlukMetinEsc(o.mevcutFaturaNo || o.faturaNo)}</div>
+        ${(o.mevcutUUID || o.uuid) ? `<div class="mt-1"><strong>UUID:</strong> <code class="small">${gunlukMetinEsc(o.mevcutUUID || o.uuid)}</code></div>` : ''}
+      </div>`
+    : '';
+  const portalBtn = o.edmPortalUrl
+    ? `<a href="${gunlukMetinEsc(o.edmPortalUrl)}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-external-link me-1"></i>EDM portalında aç (Giden Fatura)</a>`
+    : '';
+  return `
+    <div class="border rounded p-3 mb-3 bg-light">
+      <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+        <div>
+          <div class="small text-muted">${gunlukMetinEsc(baslikAlt)}</div>
+          <div class="fw-bold">${gunlukMetinEsc(o.saticiUnvan || 'Satıcı')}</div>
+          <div class="small text-muted">VKN: ${gunlukMetinEsc(o.saticiVkn || '—')}</div>
+        </div>
+        <div class="text-end">
+          <div class="small text-muted">Alıcı</div>
+          <div class="fw-semibold">${gunlukMetinEsc(o.aliciAd || 'Müşteri')}</div>
+          <div class="small"><code>${gunlukMetinEsc(o.aliciKimlik || '—')}</code></div>
+        </div>
+      </div>
+    </div>
+    ${faturaBilgi}
+    <div class="table-responsive mb-2">
+      <table class="table table-sm table-bordered mb-0 align-middle">
+        <thead class="table-light">
+          <tr><th>Ürün</th><th class="text-end">Adet</th><th class="text-end">Birim</th><th class="text-end">Tutar</th></tr>
+        </thead>
+        <tbody>${satirlar || '<tr><td colspan="4" class="text-muted text-center">Kalem yok</td></tr>'}</tbody>
+        <tfoot>
+          <tr><td colspan="3" class="text-end small">Matrah (KDV hariç)</td><td class="text-end text-nowrap">${musteriDetayParaFmt(kdv.matrah || 0)}</td></tr>
+          <tr><td colspan="3" class="text-end small">KDV (%${o.kdvOran || 20})</td><td class="text-end text-nowrap">${musteriDetayParaFmt(kdv.kdv || 0)}</td></tr>
+          <tr class="table-light"><td colspan="3" class="text-end fw-bold">Genel toplam</td><td class="text-end text-nowrap fw-bold">${musteriDetayParaFmt(kdv.toplam || o.tutar || 0)}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+    ${engelHtml}
+    ${opts.sonuc ? `<p class="small text-success mb-2">${gunlukMetinEsc(opts.sonucMesaj || 'Fatura gönderildi.')}</p>${portalBtn}` : ''}
+    ${!opts.sonuc && o.kesilebilir ? '<p class="small text-muted mb-0">Bu önizleme gönderilecek faturanın özetidir. Onayladığınızda EDM\'ye iletilir.</p>' : ''}
+    ${!opts.sonuc && !o.kesilebilir && !opts.saltGoruntule ? '<p class="small text-muted mb-0">Eksik bilgiler tamamlanmadan gönderilemez.</p>' : ''}
+    ${opts.saltGoruntule ? `<p class="small text-muted mb-0">Fatura görüntüle ile fatura sayfasını açabilir; yazdırmak için sayfada <em>Yazdır → PDF olarak kaydet</em> kullanın.</p>` : ''}`;
+}
+
+function efaturaModalFooterAyarla(mod, opts = {}) {
+  const gonderBtn = document.getElementById('efaturaKesGonderBtn');
+  const vazgecBtn = document.querySelector('#efaturaKesModal .btn-outline-secondary');
+  const goruntuleBtn = document.getElementById('efaturaGoruntuleBtn');
+  if (gonderBtn) {
+    gonderBtn.style.display = mod === 'gonder' ? '' : 'none';
+    gonderBtn.disabled = !opts.kesilebilir;
+    gonderBtn.textContent = 'Gönder';
+  }
+  if (vazgecBtn) vazgecBtn.textContent = mod === 'gonder' ? 'Vazgeç' : 'Kapat';
+  if (goruntuleBtn) {
+    goruntuleBtn.classList.toggle('d-none', mod !== 'goruntule' && mod !== 'sonuc');
+  }
+}
+
+function efaturaGoruntuleAc() {
+  if (!efaturaAktifHareketID) return;
+  window.open(`/api/efatura/satis/${efaturaAktifHareketID}/gorunum?yedek=1`, '_blank', 'noopener,noreferrer');
+}
+
+async function efaturaSatisOnizleYukle(hareketID, mod) {
+  efaturaAktifHareketID = hareketID;
+  const govde = document.getElementById('efaturaKesModalGovde');
+  if (govde) govde.innerHTML = '<p class="text-muted mb-0">Yükleniyor…</p>';
+  efaturaModalFooterAyarla(mod, { kesilebilir: false });
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('efaturaKesModal')).show();
+  const res = await fetch(`/api/efatura/satis/${hareketID}/onizle`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) throw new Error(data.message || 'Önizleme alınamadı.');
+  const o = { ...data.onizleme, saticiUnvan: data.onizleme?.saticiUnvan || data.sirket?.unvan };
+  if (govde) {
+    govde.innerHTML = efaturaOnizleHtml(o, {
+      sonuc: mod === 'sonuc',
+      saltGoruntule: mod === 'goruntule',
+      sonucMesaj: mod === 'sonuc' ? 'e-Arşiv / e-Fatura EDM\'ye iletildi.' : '',
+    });
+  }
+  efaturaModalBaslik(mod === 'goruntule' ? 'Fatura görüntüle' : mod === 'sonuc' ? 'Fatura gönderildi' : 'e-Fatura / e-Arşiv');
+  efaturaModalFooterAyarla(mod, { kesilebilir: !!o.kesilebilir });
+  return o;
+}
+
+async function efaturaSatisKesAc(hareketID) {
+  try {
+    await efaturaSatisOnizleYukle(hareketID, 'gonder');
+  } catch (err) {
+    const govde = document.getElementById('efaturaKesModalGovde');
+    if (govde) govde.innerHTML = `<p class="text-danger mb-0">${gunlukMetinEsc(err.message || 'Hata')}</p>`;
+    efaturaModalFooterAyarla('goruntule');
+  }
+}
+
+async function efaturaSatisGoruntule(hareketID) {
+  try {
+    await efaturaSatisOnizleYukle(hareketID, 'goruntule');
+  } catch (err) {
+    alert(err.message || 'Fatura görüntülenemedi.');
+  }
+}
+
+async function efaturaSatisKesGonder() {
+  if (!efaturaAktifHareketID) return;
+  const gonderBtn = document.getElementById('efaturaKesGonderBtn');
+  if (gonderBtn) {
+    gonderBtn.disabled = true;
+    gonderBtn.textContent = 'Gönderiliyor…';
+  }
+  try {
+    const res = await fetch(`/api/efatura/satis/${efaturaAktifHareketID}/kes`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) throw new Error(data.message || 'Gönderilemedi.');
+    const onizRes = await fetch(`/api/efatura/satis/${efaturaAktifHareketID}/onizle`);
+    const onizData = await onizRes.json().catch(() => ({}));
+    const o = onizData.onizleme || {};
+    o.faturaNo = data.faturaNo || o.mevcutFaturaNo;
+    o.uuid = data.uuid || o.mevcutUUID;
+    o.mevcutFaturaNo = o.faturaNo;
+    o.mevcutUUID = o.uuid;
+    const govde = document.getElementById('efaturaKesModalGovde');
+    if (govde) {
+      govde.innerHTML = efaturaOnizleHtml(o, {
+        sonuc: true,
+        sonucMesaj: data.message || 'Fatura gönderildi.',
+      });
+    }
+    efaturaModalBaslik('Fatura gönderildi');
+    efaturaModalFooterAyarla('goruntule');
+    await musteriDetayYukle();
+  } catch (err) {
+    alert(err.message || 'e-Fatura gönderilemedi.');
+  } finally {
+    if (gonderBtn) {
+      gonderBtn.disabled = false;
+      gonderBtn.textContent = 'Gönder';
+    }
+  }
+}
+
+async function efaturaSatisKesOnay(hareketID) {
+  if (!hareketID) return;
+  try {
+    const res = await fetch(`/api/efatura/satis/${hareketID}/onizle`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success || !data.onizleme?.kesilebilir) return;
+    const o = data.onizleme;
+    const tip = o.tip === 'EARSIV' ? 'e-Arşiv' : 'e-Fatura';
+    if (!confirm(`Satış kaydedildi.\n\n${tip} kesilsin mi?\n${o.aliciAd} — ${musteriDetayParaFmt(o.tutar)}`)) return;
+    efaturaAktifHareketID = hareketID;
+    const kesRes = await fetch(`/api/efatura/satis/${hareketID}/kes`, { method: 'POST' });
+    const kesData = await kesRes.json().catch(() => ({}));
+    if (!kesRes.ok || !kesData.success) throw new Error(kesData.message || 'Gönderilemedi.');
+    await efaturaSatisOnizleYukle(hareketID, 'goruntule');
+    const govde = document.getElementById('efaturaKesModalGovde');
+    if (govde) {
+      const portal = o.edmPortalUrl;
+      govde.innerHTML = efaturaOnizleHtml({
+        ...o,
+        mevcutFaturaNo: kesData.faturaNo,
+        mevcutUUID: kesData.uuid,
+        faturaNo: kesData.faturaNo,
+        uuid: kesData.uuid,
+        edmPortalUrl: portal,
+      }, { sonuc: true, sonucMesaj: kesData.message || 'Gönderildi.' });
+    }
+    efaturaModalBaslik('Fatura gönderildi');
+    efaturaModalFooterAyarla('goruntule');
+    await musteriDetayYukle();
+  } catch (err) {
+    if (err?.message) alert(err.message);
+  }
+}
+
+function musteriHareketTurBadgeHtml(h) {
+  const turRaw = (h.Tur || '').toLowerCase();
+  if (turRaw === 'odeme') {
+    const sek = String(h.OdemeSekli || 'Nakit').trim() || 'Nakit';
+    return `<span class="badge bg-success">Tahsilat — ${gunlukMetinEsc(sek)}</span>`;
+  }
+  if (turRaw === 'iadeodeme') {
+    const sek = String(h.OdemeSekli || 'Nakit').trim() || 'Nakit';
+    return `<span class="badge bg-warning text-dark">İade ödeme — ${gunlukMetinEsc(sek)}</span>`;
+  }
+  if (turRaw === 'iade') return '<span class="badge bg-warning text-dark">İade</span>';
+  return '<span class="badge bg-danger">Satış</span>';
+}
+
+function musteriHareketIslemBtnHtml(h) {
+  return `${efaturaSatisBtnHtml(h)}<button type="button" class="btn btn-sm btn-outline-danger" onclick="musteriHareketSil(${h.HareketID})">Sil</button>`;
+}
+
+function musteriHareketCariSatirlari(h, yuruyen) {
+  const satirlar = [];
+  const turRaw = (h.Tur || '').toLowerCase();
+  const satisMi = turRaw === 'satis';
+  const iadeMi = turRaw === 'iade';
+  const odemeMi = turRaw === 'odeme';
+  const iadeOdemeMi = turRaw === 'iadeodeme';
+  const tarih = tarihTrGoster(h.Tarih);
+  const islem = musteriHareketIslemBtnHtml(h);
+  const detaylar = Array.isArray(h.detaylar) ? h.detaylar : [];
+  const odenen = Number(h.OdenenTutar || 0);
+  const tutarCls = iadeMi ? 'text-warning' : 'text-danger';
+
+  if ((satisMi || iadeMi) && detaylar.length) {
+    detaylar.forEach((d, i) => {
+      const ilk = i === 0;
+      const sonUrun = i === detaylar.length - 1;
+      const tahsilatVar = odenen > 0;
+      const yuruyenHucre = (!tahsilatVar && sonUrun)
+        ? `<td class="text-end text-nowrap fw-semibold">${musteriDetayParaFmt(yuruyen)}</td>`
+        : '<td></td>';
+      const grupBit = !tahsilatVar && sonUrun;
+      satirlar.push(`<tr class="md-cari-satir${ilk ? ' md-cari-grup-bas' : ' md-cari-devam'}${grupBit ? ' md-cari-grup-bit' : ''}">
+        <td class="small text-nowrap">${ilk ? gunlukMetinEsc(tarih) : ''}</td>
+        <td>${ilk ? `${musteriHareketTurBadgeHtml(h)}${musteriMobilIkonHtml(h)}${efaturaDurumBadgeHtml(h)}` : ''}</td>
+        <td class="md-cari-urun">${gunlukMetinEsc(d.UrunAdi || '-')}</td>
+        <td class="md-cari-urun text-center">${Number(d.Miktar || 0)}</td>
+        <td class="md-cari-urun text-end text-nowrap">${musteriDetayParaFmt(d.BirimFiyat)}</td>
+        <td class="md-cari-urun text-end text-nowrap ${tutarCls} fw-semibold">${musteriDetayParaFmt(d.SatirTutar)}</td>
+        ${yuruyenHucre}
+        <td class="text-end text-nowrap">${ilk ? islem : ''}</td>
+      </tr>`);
+    });
+    if (odenen > 0) {
+      const sek = String(h.OdemeSekli || 'Nakit').trim() || 'Nakit';
+      satirlar.push(`<tr class="md-cari-devam md-cari-grup-bit md-cari-tahsilat-satir">
+        <td></td>
+        <td><span class="badge bg-success">Tahsilat — ${gunlukMetinEsc(sek)}</span></td>
+        <td colspan="3"></td>
+        <td class="text-end text-nowrap text-success fw-bold">${musteriDetayParaFmt(odenen)}</td>
+        <td class="text-end text-nowrap fw-semibold">${musteriDetayParaFmt(yuruyen)}</td>
+        <td></td>
+      </tr>`);
+    }
+    return satirlar;
+  }
+
+  if (odemeMi || iadeOdemeMi) {
+    const tutar = odenen || Number(h.ToplamTutar || 0);
+    satirlar.push(`<tr class="md-cari-grup-bas md-cari-grup-bit">
+      <td class="small text-nowrap">${gunlukMetinEsc(tarih)}</td>
+      <td>${musteriHareketTurBadgeHtml(h)}${musteriMobilIkonHtml(h)}</td>
+      <td class="text-muted">—</td>
+      <td></td>
+      <td></td>
+      <td class="text-end text-nowrap text-success fw-bold">${musteriDetayParaFmt(tutar)}</td>
+      <td class="text-end text-nowrap fw-semibold">${musteriDetayParaFmt(yuruyen)}</td>
+      <td class="text-end text-nowrap">${islem}</td>
+    </tr>`);
+    return satirlar;
+  }
+
+  const aciklama = musteriHareketAltAciklama(h);
+  const toplam = Number(h.ToplamTutar || 0);
+  satirlar.push(`<tr class="md-cari-grup-bas${odenen > 0 ? '' : ' md-cari-grup-bit'}">
+    <td class="small text-nowrap">${gunlukMetinEsc(tarih)}</td>
+    <td>${musteriHareketTurBadgeHtml(h)}${musteriMobilIkonHtml(h)}${efaturaDurumBadgeHtml(h)}</td>
+    <td>${gunlukMetinEsc(aciklama || (satisMi ? 'Satış' : 'İade'))}</td>
+    <td></td>
+    <td></td>
+    <td class="text-end text-nowrap ${tutarCls} fw-semibold">${musteriDetayParaFmt(toplam)}</td>
+    <td class="text-end text-nowrap fw-semibold">${odenen > 0 ? '' : musteriDetayParaFmt(yuruyen)}</td>
+    <td class="text-end text-nowrap">${islem}</td>
+  </tr>`);
+  if (odenen > 0) {
+    const sek = String(h.OdemeSekli || 'Nakit').trim() || 'Nakit';
+    satirlar.push(`<tr class="md-cari-devam md-cari-grup-bit md-cari-tahsilat-satir">
+      <td></td>
+      <td><span class="badge bg-success">Tahsilat — ${gunlukMetinEsc(sek)}</span></td>
+      <td colspan="3"></td>
+      <td class="text-end text-nowrap text-success fw-bold">${musteriDetayParaFmt(odenen)}</td>
+      <td class="text-end text-nowrap fw-semibold">${musteriDetayParaFmt(yuruyen)}</td>
+      <td></td>
+    </tr>`);
+  }
+  return satirlar;
+}
+
 function musteriDetayHareketTabloDoldur(hareketler) {
   const tb = document.getElementById('mdHareketGovde');
   if (!tb) return;
@@ -2100,58 +2455,11 @@ function musteriDetayHareketTabloDoldur(hareketler) {
     return;
   }
   const yuruyenMap = musteriYuruyenBakiyeMap(hareketler);
-  tb.innerHTML = hareketler
-    .map((h) => {
-      const tarih = tarihTrGoster(h.Tarih);
-      const turRaw = (h.Tur || '').toLowerCase();
-      const odemeMi = turRaw === 'odeme';
-      const iadeMi = turRaw === 'iade';
-      const iadeOdemeMi = turRaw === 'iadeodeme';
-      const satisMi = turRaw === 'satis';
-      const tur = odemeMi
-        ? '<span class="badge bg-success">Tahsilat</span>'
-        : iadeOdemeMi
-          ? '<span class="badge bg-warning text-dark">İade Ödeme</span>'
-        : iadeMi
-          ? '<span class="badge bg-warning text-dark">İade</span>'
-          : '<span class="badge bg-danger">Satış</span>';
-      const odemeSekli = h.OdemeSekli || '—';
-      const odemeBadgeClass = odemeMi ? 'bg-success' : (iadeMi || iadeOdemeMi) ? 'bg-warning text-dark' : 'bg-secondary';
-      const yuruyen = yuruyenMap.get(Number(h.HareketID));
-      const yuruyenCls = 'text-dark';
-      const odenenTutar = Number(h.OdenenTutar || 0);
-      const odemeCls = odenenTutar > 0 ? 'text-success' : 'text-dark';
-      const makbuzBtnHtml = (odemeMi || iadeOdemeMi)
-        ? `<button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="harekettenMakbuzOnizle(${h.HareketID})">Makbuz</button>`
-        : '';
-      const detayBtnHtml = (satisMi || iadeMi)
-        ? `<button type="button" class="btn btn-sm btn-outline-dark me-1" onclick="musteriHareketDetayAc(${h.HareketID})">Detay</button>`
-        : '';
-      const aciklamaTemiz = musteriHareketAltAciklama(h);
-      const altSatir = aciklamaTemiz
-        ? `<div class="small text-muted">${gunlukMetinEsc(aciklamaTemiz)}</div>`
-        : '';
-      return `<tr>
-        <td class="small text-nowrap">${gunlukMetinEsc(tarih)}</td>
-        <td>
-          <div>${tur}${musteriMobilIkonHtml(h)}</div>
-          ${altSatir}
-        </td>
-        <td class="text-end text-nowrap${satisMi ? ' text-danger fw-semibold' : ''}">${musteriDetayParaFmt(h.ToplamTutar)}</td>
-        <td class="text-end text-nowrap ${odemeCls}">${musteriDetayParaFmt(h.OdenenTutar)}</td>
-        <td class="text-end text-nowrap ${yuruyenCls}">${musteriDetayParaFmt(yuruyen)}</td>
-        <td>
-          <span class="badge ${odemeBadgeClass}">${gunlukMetinEsc(odemeSekli)}</span>
-        </td>
-        <td class="small">${gunlukMetinEsc(h.Kullanici || 'Sistem')}</td>
-        <td class="text-end text-nowrap">
-          ${makbuzBtnHtml}
-          ${detayBtnHtml}
-          <button type="button" class="btn btn-sm btn-outline-danger" onclick="musteriHareketSil(${h.HareketID})">Sil</button>
-        </td>
-      </tr>`;
-    })
-    .join('');
+  const html = [];
+  for (const h of hareketler) {
+    html.push(...musteriHareketCariSatirlari(h, yuruyenMap.get(Number(h.HareketID))));
+  }
+  tb.innerHTML = html.join('');
 }
 
 async function musteriDetayYukle() {
@@ -2171,6 +2479,10 @@ async function musteriDetayYukle() {
   if (turBadge) {
     turBadge.textContent = musteriTurEtiket(m);
     turBadge.className = musteriTurBadgeSinif(tuzel);
+  }
+  const avatarIkon = document.getElementById('mdMusteriAvatarIkon');
+  if (avatarIkon) {
+    avatarIkon.className = tuzel ? 'fa-solid fa-building' : 'fa-solid fa-user';
   }
   const gercekAd = String(m.AdSoyad || '').trim();
   const firma = String(m.FirmaAdi || '').trim();
@@ -2359,6 +2671,7 @@ async function musteriDetaySatisKaydet(event) {
     musterileriGetir();
     stoklariGetir();
     ozetBilgileriniGetir();
+    if (data.hareketID) await efaturaSatisKesOnay(data.hareketID);
   };
   if (satisModal && satisModalEl) {
     satisModalEl.addEventListener('hidden.bs.modal', satisSonrasi, { once: true });
@@ -3484,6 +3797,7 @@ function ayarlarModalAc() {
   const vergi = document.getElementById('ayrSirketVergiNo');
   const tel = document.getElementById('ayrSirketTelefon');
   const adres = document.getElementById('ayrSirketAdres');
+  const edmGb = document.getElementById('ayrEdmGbAlias');
   if (oto) oto.checked = !!Number(uygulamaAyarlari?.OtomatikMakbuz || 0);
   if (no) no.value = Number(uygulamaAyarlari?.MakbuzSonNo || 0) + 1;
   if (unvan) unvan.value = uygulamaAyarlari?.SirketUnvan || '';
@@ -3491,6 +3805,7 @@ function ayarlarModalAc() {
   if (vergi) vergi.value = uygulamaAyarlari?.SirketVergiNo || '';
   if (tel) tel.value = uygulamaAyarlari?.SirketTelefon || '';
   if (adres) adres.value = uygulamaAyarlari?.SirketAdres || '';
+  if (edmGb) edmGb.value = uygulamaAyarlari?.EdmGbAlias || '';
   ayarYedekListele();
   bootstrap.Modal.getOrCreateInstance(document.getElementById('ayarlarModal')).show();
 }
@@ -3529,6 +3844,7 @@ async function ayarlarKaydet(event) {
     sirketVergiNo: document.getElementById('ayrSirketVergiNo')?.value?.trim() || '',
     sirketTelefon: document.getElementById('ayrSirketTelefon')?.value?.trim() || '',
     sirketAdres: document.getElementById('ayrSirketAdres')?.value?.trim() || '',
+    edmGbAlias: document.getElementById('ayrEdmGbAlias')?.value?.trim() || '',
   };
   const res = await fetch('/api/ayarlar', {
     method: 'POST',

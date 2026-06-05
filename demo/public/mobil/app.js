@@ -465,6 +465,7 @@
       ]);
       stokCache = stokRes.ok ? await stokRes.json() : [];
       musteriCache = musRes.ok ? await musRes.json() : [];
+      mobilMusteriAramaIndeksGuncelle();
       stokListele();
       musteriListele();
       await Promise.all([gunlukKasaYukle(), isletmeYukle()]);
@@ -476,19 +477,13 @@
 
   /* ——— Reçete (mobil) ——— */
   function mobilReceteOnerileriDuzelt(oneriler) {
-    if (!oneriler?.secimGerekli || !oneriler.enYakin || !oneriler.enUzak) return oneriler;
-    const yF = Number(oneriler.enYakin.fire) || 0;
-    const uF = Number(oneriler.enUzak.fire) || 0;
-    if (yF > uF + 1e-6) {
-      return { ...oneriler, enYakin: oneriler.enUzak, enUzak: oneriler.enYakin };
-    }
-    return oneriler;
+    if (!oneriler) return oneriler;
+    return { ...oneriler, secimGerekli: false };
   }
 
   function mobilReceteVarsayilanSecimTip(oneriler) {
     if (!oneriler) return 'enYakin';
     if (oneriler.tamBolunmus || (oneriler.tamDenk && oneriler.tamUyum)) return 'tamUyum';
-    if (oneriler.secimGerekli) return 'enYakin';
     return 'enYakin';
   }
 
@@ -498,8 +493,8 @@
     const tip = satir.secimTip || mobilReceteVarsayilanSecimTip(o);
     if (tip === 'tamUyum' && o.tamBolunmus) return o.tamBolunmus;
     if (tip === 'tamUyum' && o.tamUyum) return o.tamUyum;
-    if (tip === 'enUzak' && o.enUzak) return o.enUzak;
     if (tip === 'enYakin' && o.enYakin) return o.enYakin;
+    if (tip === 'enUzak' && o.enYakin) return o.enYakin;
     if (tip === 'azKutu' && o.azKutu) return o.azKutu;
     return o.enYakin || o.azAtik || o.enUzak || o.tamUyum || null;
   }
@@ -621,22 +616,10 @@
     let secimHtml = '';
     let planHtml = '';
 
-    if (m.oneriler?.secimGerekli && m.oneriler.enYakin && m.oneriler.enUzak) {
-      const chkY = secimTip === 'enYakin' || secimTip === 'tamUyum' ? 'checked' : '';
-      const chkU = secimTip === 'enUzak' ? 'checked' : '';
-      secimHtml = `<div class="mobil-recete-secim" data-recete-idx="${idx}">
-        <span>Tam denk değil:</span>
-        <label><input type="radio" name="mobilReceteSecim_${key}" value="enYakin" ${chkY}> ${typeof receteSecimEtiket === 'function' ? receteSecimEtiket('enYakin') : 'İhtiyaca en yakın seçenek'}</label>
-        <label><input type="radio" name="mobilReceteSecim_${key}" value="enUzak" ${chkU}> ${typeof receteSecimEtiket === 'function' ? receteSecimEtiket('enUzak') : 'İhtiyacı en az geçen seçenek'}</label>
-      </div>`;
-      const plan = secimTip === 'enUzak' ? m.oneriler.enUzak : m.oneriler.enYakin;
-      planHtml = mobilRecetePlanHtml(plan, birim, m.ambalajlar, { editable: true, idx });
-    } else {
-      const o = m.oneriler;
-      const tamPlan = o?.tamBolunmus || o?.tamUyum;
-      const plan = mobilReceteAktifPlan(m) || tamPlan || o?.enYakin || o?.azAtik;
-      planHtml = mobilRecetePlanHtml(plan, birim, m.ambalajlar, { editable: true, idx });
-    }
+    const o = m.oneriler;
+    const tamPlan = o?.tamBolunmus || o?.tamUyum;
+    const plan = mobilReceteAktifPlan(m) || tamPlan || o?.enYakin || o?.azAtik;
+    planHtml = mobilRecetePlanHtml(plan, birim, m.ambalajlar, { editable: true, idx });
 
     const maliyet = mobilReceteSatirMaliyet(m);
     const notParcalar = [];
@@ -1190,11 +1173,11 @@
       box.hidden = true;
       return;
     }
-    const filtre = musteriCache.filter((m) => {
-      const ad = musteriGorunenAd(m).toLocaleLowerCase('tr-TR');
-      const tel = String(m.Telefon || '').toLowerCase();
-      return ad.includes(trimmed) || tel.includes(trimmed) || String(m.MusteriID).includes(trimmed);
-    }).slice(0, 15);
+    const filtre = [];
+    for (let i = 0; i < musteriCache.length; i += 1) {
+      if (mobilMusteriAramaMetni(musteriCache[i]).includes(trimmed)) filtre.push(musteriCache[i]);
+      if (filtre.length >= 15) break;
+    }
     box.innerHTML = '';
     if (filtre.length === 0) {
       box.hidden = true;
@@ -1311,6 +1294,30 @@
   }
 
   /* ——— Müşteri ——— */
+  function mobilMusteriAramaMetni(m) {
+    if (m._aramaMetin) return m._aramaMetin;
+    m._aramaMetin = [
+      m.MusteriID, m.AdSoyad, m.FirmaAdi, m.Telefon,
+      musteriGorunenAd(m),
+    ].map((s) => String(s ?? '')).join(' ').toLocaleLowerCase('tr-TR');
+    return m._aramaMetin;
+  }
+
+  function mobilMusteriAramaIndeksGuncelle() {
+    for (const m of musteriCache) {
+      delete m._aramaMetin;
+      mobilMusteriAramaMetni(m);
+    }
+  }
+
+  let _mobilMusteriListeTimer = null;
+  function musteriListeleDebounced() {
+    clearTimeout(_mobilMusteriListeTimer);
+    _mobilMusteriListeTimer = setTimeout(musteriListele, 220);
+  }
+
+  const MOBIL_MUSTERI_LISTE_LIMIT = 80;
+
   function musteriListele() {
     const q = ($('musteriArama').value || '').trim().toLocaleLowerCase('tr-TR');
     const sadeceBorc = $('musteriSadeceBorc').checked;
@@ -1318,11 +1325,14 @@
     let liste = musteriCache;
     if (sadeceBorc) liste = liste.filter((m) => Number(m.Bakiye) > 0.005);
     if (q) {
-      liste = liste.filter((m) => {
-        const ad = musteriGorunenAd(m).toLocaleLowerCase('tr-TR');
-        const tel = String(m.Telefon || '').toLowerCase();
-        return ad.includes(q) || tel.includes(q) || String(m.MusteriID).includes(q);
-      });
+      const filtre = [];
+      for (let i = 0; i < liste.length; i += 1) {
+        if (mobilMusteriAramaMetni(liste[i]).includes(q)) filtre.push(liste[i]);
+        if (filtre.length >= MOBIL_MUSTERI_LISTE_LIMIT) break;
+      }
+      liste = filtre;
+    } else if (liste.length > MOBIL_MUSTERI_LISTE_LIMIT) {
+      liste = liste.slice(0, MOBIL_MUSTERI_LISTE_LIMIT);
     }
     liste = [...liste].sort((a, b) => Number(b.Bakiye || 0) - Number(a.Bakiye || 0));
     ul.innerHTML = '';
@@ -1457,13 +1467,17 @@
     $('btnSepetTemizle').onclick = () => { sepet = []; sepetCiz(); };
     $('btnSatisTamamla').onclick = satisDialogAc;
     $('formSatis').onsubmit = satisKaydet;
-    $('satisMusteriAra').addEventListener('input', (e) => satisMusteriAraGoster(e.target.value));
+    let _satisMusteriAraTimer = null;
+    $('satisMusteriAra').addEventListener('input', (e) => {
+      clearTimeout(_satisMusteriAraTimer);
+      _satisMusteriAraTimer = setTimeout(() => satisMusteriAraGoster(e.target.value), 220);
+    });
     document.querySelectorAll('[data-dialog-close]').forEach((b) => {
       b.onclick = () => b.closest('dialog')?.close();
     });
 
     $('stokArama').addEventListener('input', stokListele);
-    $('musteriArama').addEventListener('input', musteriListele);
+    $('musteriArama').addEventListener('input', musteriListeleDebounced);
     $('musteriSadeceBorc').addEventListener('change', musteriListele);
 
     document.querySelectorAll('.nav-btn').forEach((btn) => {

@@ -6,7 +6,10 @@ function menuyuGoster(bolumAdi) {
     return;
   }
   if (bolumAdi === 'stok') {
-    modalAc(document.getElementById('stokListeModal'), () => stoklariGetir());
+    modalAc(document.getElementById('stokListeModal'), () => {
+      if (typeof stokListeAramaTemizle === 'function') stokListeAramaTemizle();
+      stoklariGetir();
+    });
     return;
   }
   if (bolumAdi === 'tedarikci') {

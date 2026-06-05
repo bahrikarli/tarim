@@ -323,6 +323,26 @@ async function ensureMusteriHareketTablosu(pool) {
       ALTER TABLE dbo.MusteriHareketleri ADD MakbuzNo INT NULL;
   `);
   await pool.request().query(`
+    IF COL_LENGTH('dbo.MusteriHareketleri', 'EfaturaDurum') IS NULL
+      ALTER TABLE dbo.MusteriHareketleri ADD EfaturaDurum NVARCHAR(20) NULL;
+    IF COL_LENGTH('dbo.MusteriHareketleri', 'EfaturaTip') IS NULL
+      ALTER TABLE dbo.MusteriHareketleri ADD EfaturaTip NVARCHAR(20) NULL;
+    IF COL_LENGTH('dbo.MusteriHareketleri', 'EfaturaUUID') IS NULL
+      ALTER TABLE dbo.MusteriHareketleri ADD EfaturaUUID NVARCHAR(40) NULL;
+    IF COL_LENGTH('dbo.MusteriHareketleri', 'EfaturaNo') IS NULL
+      ALTER TABLE dbo.MusteriHareketleri ADD EfaturaNo NVARCHAR(30) NULL;
+    IF COL_LENGTH('dbo.MusteriHareketleri', 'EfaturaHata') IS NULL
+      ALTER TABLE dbo.MusteriHareketleri ADD EfaturaHata NVARCHAR(500) NULL;
+    IF COL_LENGTH('dbo.MusteriHareketleri', 'EfaturaTarih') IS NULL
+      ALTER TABLE dbo.MusteriHareketleri ADD EfaturaTarih DATETIME NULL;
+    IF COL_LENGTH('dbo.MusteriHareketleri', 'EfaturaUblXml') IS NULL
+      ALTER TABLE dbo.MusteriHareketleri ADD EfaturaUblXml NVARCHAR(MAX) NULL;
+    IF COL_LENGTH('dbo.MusteriHareketleri', 'EfaturaEdmHtml') IS NULL
+      ALTER TABLE dbo.MusteriHareketleri ADD EfaturaEdmHtml NVARCHAR(MAX) NULL;
+    IF COL_LENGTH('dbo.MusteriHareketleri', 'EfaturaEdmHtmlTarih') IS NULL
+      ALTER TABLE dbo.MusteriHareketleri ADD EfaturaEdmHtmlTarih DATETIME NULL;
+  `);
+  await pool.request().query(`
     IF OBJECT_ID(N'dbo.MusteriHareketDetaylari', N'U') IS NULL
     BEGIN
       CREATE TABLE dbo.MusteriHareketDetaylari (
@@ -481,6 +501,8 @@ async function ensureSistemAyarTablosu(pool) {
     END
     IF COL_LENGTH('dbo.SistemAyarlar', 'SirketYetkiliAdSoyad') IS NULL
       ALTER TABLE dbo.SistemAyarlar ADD SirketYetkiliAdSoyad NVARCHAR(120) NULL;
+    IF COL_LENGTH('dbo.SistemAyarlar', 'EdmGbAlias') IS NULL
+      ALTER TABLE dbo.SistemAyarlar ADD EdmGbAlias NVARCHAR(200) NULL;
   `);
 }
 
@@ -2646,7 +2668,8 @@ app.get('/api/musteri/:id/hareketler', async (req, res) => {
       reqH.input('Bitis', sql.Date, bitis);
       hareketSql = `
         SELECT HareketID, MusteriID, Tur, ToplamTutar, OdenenTutar, KalanTutar, MakbuzKalanBakiye, MakbuzNo,
-               OdemeSekli, Aciklama, Kullanici, Referans, Tarih
+               OdemeSekli, Aciklama, Kullanici, Referans, Tarih,
+               EfaturaDurum, EfaturaTip, EfaturaUUID, EfaturaNo, EfaturaHata, EfaturaTarih
         FROM MusteriHareketleri
         WHERE MusteriID = @MusteriID
           AND CAST(Tarih AS DATE) >= @Baslangic AND CAST(Tarih AS DATE) <= @Bitis
@@ -2654,7 +2677,8 @@ app.get('/api/musteri/:id/hareketler', async (req, res) => {
     } else {
       hareketSql = `
         SELECT TOP 500 HareketID, MusteriID, Tur, ToplamTutar, OdenenTutar, KalanTutar, MakbuzKalanBakiye, MakbuzNo,
-               OdemeSekli, Aciklama, Kullanici, Referans, Tarih
+               OdemeSekli, Aciklama, Kullanici, Referans, Tarih,
+               EfaturaDurum, EfaturaTip, EfaturaUUID, EfaturaNo, EfaturaHata, EfaturaTarih
         FROM MusteriHareketleri
         WHERE MusteriID = @MusteriID
         ORDER BY Tarih DESC, HareketID DESC`;
@@ -2665,6 +2689,27 @@ app.get('/api/musteri/:id/hareketler', async (req, res) => {
       ...h,
       MobilKaynak: hareketMobilMi(h),
     }));
+
+    const detayByHareket = new Map();
+    if (hareketler.length) {
+      const detayRs = await pool.request()
+        .input('MusteriID', sql.Int, musteriID)
+        .query(`
+          SELECT d.DetayID, d.HareketID, d.StokID, d.UrunAdi, d.Miktar, d.BirimFiyat, d.SatirTutar
+          FROM MusteriHareketDetaylari d
+          INNER JOIN MusteriHareketleri h ON h.HareketID = d.HareketID
+          WHERE h.MusteriID = @MusteriID
+          ORDER BY d.HareketID ASC, d.DetayID ASC
+        `);
+      for (const d of detayRs.recordset || []) {
+        const hid = Number(d.HareketID);
+        if (!detayByHareket.has(hid)) detayByHareket.set(hid, []);
+        detayByHareket.get(hid).push(d);
+      }
+    }
+    for (const h of hareketler) {
+      h.detaylar = detayByHareket.get(Number(h.HareketID)) || [];
+    }
     const ozet = {
       toplamSatis: 0,
       toplamOdeme: 0,
@@ -3055,6 +3100,7 @@ app.post('/api/musteri/:id/satis-sepet', async (req, res) => {
     const kalan = Math.round((toplam - tahsilat) * 100) / 100;
     let kaydedilenMakbuzNo = null;
     let kaydedilenFinalBakiye = null;
+    let satisHareketID = null;
 
     const transaction = new sql.Transaction(pool);
     await transaction.begin();
@@ -3123,7 +3169,7 @@ app.post('/api/musteri/:id/satis-sepet', async (req, res) => {
         VALUES
           (@MusteriID, @Tur, @ToplamTutar, @OdenenTutar, @KalanTutar, @OdemeSekli, @Aciklama, @Kullanici, @Referans)
       `);
-      const satisHareketID = harIns.recordset[0]?.HareketID;
+      satisHareketID = harIns.recordset[0]?.HareketID;
       if (satisHareketID) {
         for (const s of satirlar) {
           await new sql.Request(transaction)
@@ -3218,6 +3264,7 @@ app.post('/api/musteri/:id/satis-sepet', async (req, res) => {
     res.json({
       success: true,
       message: mesaj,
+      hareketID: satisHareketID || null,
       isaretlenenRecete: receteIdList.length,
       toplam,
       tahsilat,
@@ -3741,7 +3788,7 @@ app.get('/api/ayarlar', async (req, res) => {
   try {
     const pool = await poolPromise;
     const rs = await pool.request().query(`
-      SELECT TOP 1 AyarID, OtomatikMakbuz, MakbuzSonNo, SirketUnvan, SirketYetkiliAdSoyad, SirketVergiNo, SirketTelefon, SirketAdres
+      SELECT TOP 1 AyarID, OtomatikMakbuz, MakbuzSonNo, SirketUnvan, SirketYetkiliAdSoyad, SirketVergiNo, SirketTelefon, SirketAdres, EdmGbAlias
       FROM SistemAyarlar
       WHERE AyarID = 1
     `);
@@ -3770,6 +3817,7 @@ app.post('/api/ayarlar', async (req, res) => {
       sirketVergiNo,
       sirketTelefon,
       sirketAdres,
+      edmGbAlias,
     } = req.body || {};
     const basNo = parseInt(makbuzBaslangicNo, 10);
     const setSonNo = Number.isInteger(basNo) && basNo > 0 ? basNo - 1 : null;
@@ -3782,6 +3830,7 @@ app.post('/api/ayarlar', async (req, res) => {
       .input('SirketVergiNo', sql.NVarChar(40), String(sirketVergiNo || '').trim().substring(0, 40) || null)
       .input('SirketTelefon', sql.NVarChar(40), String(sirketTelefon || '').trim().substring(0, 40) || null)
       .input('SirketAdres', sql.NVarChar(300), String(sirketAdres || '').trim().substring(0, 300) || null)
+      .input('EdmGbAlias', sql.NVarChar(200), String(edmGbAlias || '').trim().substring(0, 200) || null)
       .query(`
         UPDATE SistemAyarlar
         SET OtomatikMakbuz = @OtomatikMakbuz,
@@ -3790,7 +3839,8 @@ app.post('/api/ayarlar', async (req, res) => {
             SirketYetkiliAdSoyad = @SirketYetkiliAdSoyad,
             SirketVergiNo = @SirketVergiNo,
             SirketTelefon = @SirketTelefon,
-            SirketAdres = @SirketAdres
+            SirketAdres = @SirketAdres,
+            EdmGbAlias = @EdmGbAlias
         WHERE AyarID = 1
       `);
     res.json({ success: true, message: 'Ayarlar kaydedildi.' });
@@ -5110,7 +5160,7 @@ registerUpdateRoutes(app, {
   githubReleaseAssetUrlTahmini,
 });
 
-registerEfaturaEdmRoutes(app);
+registerEfaturaEdmRoutes(app, poolPromise);
 
 registerBackupRoutes(app, {
   sql,

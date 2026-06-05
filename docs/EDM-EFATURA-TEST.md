@@ -49,11 +49,21 @@ Tarayıcı veya Postman:
 - `GET http://localhost:3012/api/efatura/edm/durum` — ayar özeti (şifre gösterilmez)
 - `POST http://localhost:3012/api/efatura/edm/baglanti-testi` — Login testi
 
-## 6) Sonraki adımlar (henüz yok)
+## 6) Satıştan e-Fatura / e-Arşiv
 
-1. Test fatura XML (UBL-TR) üretimi  
-2. `LoadInvoice` / `SendInvoice`  
-3. Müşteri satışından “e-Fatura kes” butonu  
-4. e-Arşiv (B2C) ayrı profil  
+1. **Ayarlar** → Şirket ünvanı ve 10 haneli VKN  
+2. `.env` → `EDM_GB_ALIAS` (gönderici birim etiketi, EDM’den)  
+3. Müşteri → tüzel için vergi no, gerçek kişi için TC kimlik no  
+4. Satış kaydından sonra onay sorulur veya cari hareketlerde **e-Fatura** butonu  
 
-Önce **Login testi** yeşil olmalı; sonra fatura gönderimine geçilir.
+| Müşteri | Belge |
+|---------|--------|
+| Tüzel + VKN | e-Fatura |
+| Gerçek kişi + TCKN | e-Arşiv |
+
+API:
+
+- `GET /api/efatura/satis/:hareketID/onizle`
+- `POST /api/efatura/satis/:hareketID/kes`
+
+Önce **Login testi** yeşil olmalı; `EDM_GB_ALIAS` ve şirket VKN tanımlı olmalı.

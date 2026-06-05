@@ -121,6 +121,18 @@ DB_ENCRYPT=false
 DB_TRUST_CERT=true
 UPDATE_MANIFEST_URL=off
 OPEN_BROWSER=0
+
+# EDM Bilişim e-Fatura (test) — kullanici/sifre buraya
+EDM_WSDL_URL=https://test.edmbilisim.com.tr/EFaturaEDM21ea/EFaturaEDM.svc?singleWsdl
+EDM_USERNAME=
+EDM_PASSWORD=
+EDM_HOSTNAME=ACRZIRAAT
+EDM_CHANNEL=ACRZIRAAT
+EDM_APPLICATION=ACR Ziraat
+EDM_TEST=1
+EDM_GB_ALIAS=
+EDM_KDV_ORAN=20
+EDM_FATURA_SERI=ACR
 `
 );
 

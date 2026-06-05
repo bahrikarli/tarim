@@ -120,11 +120,9 @@ function receteGenelMaliyetToplam() {
 function receteGenelToplamHtml(toplamOverride) {
   const toplam = toplamOverride != null ? Number(toplamOverride) : receteGenelMaliyetToplam();
   if (toplamOverride == null && !receteSatirlar.length) return '';
-  return `<div class="card border-dark shadow-sm mt-2 mb-0">
-    <div class="card-body py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <span class="fw-semibold"><i class="fa-solid fa-coins me-1 text-success"></i>Reçete genel toplam (maliyet)</span>
-      <span class="fs-5 fw-bold text-success mb-0">${receteParaFormat(toplam)}</span>
-    </div>
+  return `<div class="recete-duzen-genel">
+    <span class="lbl">Genel toplam</span>
+    <span class="tutar">${receteParaFormat(toplam)}</span>
   </div>`;
 }
 
@@ -266,25 +264,25 @@ function receteMiktarFmt(v, birim) {
   return `${s} ${b}`;
 }
 
-/** Çiftçi için: dozaj (dekar başı) ve tarla toplam ihtiyaç — ayrı satırlar. */
+/** Dozaj ve toplam ihtiyaç — tek satırda kompakt. */
 function receteKalemDozajIhtiyacHtml(m, birim) {
   const b = birim || m.birim || 'Lt';
   const iht = Number(m.toplamIhtiyac);
   const dekar = Number(m.dekar ?? receteCtx?.dekar);
   const dozaj = m.miktarDekar != null ? Number(m.miktarDekar) : null;
-  const satirlar = [];
+  const parcalar = [];
 
   if (Number.isFinite(dozaj) && dozaj > 0) {
-    satirlar.push(`<div class="recete-dozaj-satir"><span class="recete-etiket-dozaj">Dozaj</span> <strong>${receteMiktarFmt(dozaj, b)}/da</strong></div>`);
+    parcalar.push(`<span><span class="recete-etiket-inline">Dozaj</span> <strong>${receteMiktarFmt(dozaj, b)}/da</strong></span>`);
   }
   if (Number.isFinite(iht) && iht > 0) {
     const dekarNot = Number.isFinite(dekar) && dekar > 0
-      ? ` <span class="text-muted fw-normal">(${dekar} da tarla)</span>`
+      ? ` <span class="text-muted fw-normal">(${dekar} da)</span>`
       : '';
-    satirlar.push(`<div class="recete-ihtiyac-satir"><span class="recete-etiket-ihtiyac">İhtiyaç (toplam)</span> <strong class="text-success">${receteMiktarFmt(iht, b)}</strong>${dekarNot}</div>`);
+    parcalar.push(`<span><span class="recete-etiket-inline recete-etiket-inline--iht">İhtiyaç</span> <strong class="text-success">${receteMiktarFmt(iht, b)}</strong>${dekarNot}</span>`);
   }
-  if (!satirlar.length) return '';
-  return `<div class="recete-dozaj-ihtiyac">${satirlar.join('')}</div>`;
+  if (!parcalar.length) return '';
+  return `<div class="recete-dozaj-ihtiyac recete-dozaj-ihtiyac--kompakt">${parcalar.join('<span class="recete-meta-ayrac">·</span>')}</div>`;
 }
 
 function receteKalemIhtiyacNotu(m, birim) {
@@ -334,6 +332,106 @@ function receteAktifPlan(satir) {
   return o.enYakin || o.azAtik || o.enUzak || o.tamUyum || null;
 }
 
+function receteDuzenAktifPlanVeAmb(m) {
+  const amb = receteAmbalajlarFromPlan(m);
+  const o = m.oneriler;
+  if (o) {
+    const tamPlan = o.tamBolunmus || o.tamUyum;
+    if (o.tamDenk && tamPlan) return { plan: tamPlan, amb };
+    const plan = o.enYakin || o.azAtik;
+    if (plan) return { plan, amb };
+  }
+  const plan = receteAktifPlan(m) || o?.tamBolunmus || o?.enYakin || o?.azAtik;
+  return { plan, amb };
+}
+
+function receteDuzenMalzemeTabloHtml(satirlar, opts = {}) {
+  const editable = opts.editable !== false;
+  const tbody = [];
+  let hasContent = false;
+
+  satirlar.forEach((m, blokIdx) => {
+    const birim = m.birim || 'Lt';
+    const satirKey = m.key;
+    const malzAd = m.grupAdi || m.urunAdi;
+    const { plan, amb } = receteDuzenAktifPlanVeAmb(m);
+
+    if (!plan?.secim?.length) {
+      tbody.push(`<tr class="recete-duzen-hata"><td colspan="5" class="text-danger small py-2 px-2">
+        <strong>${gunlukMetinEsc(malzAd)}</strong>: ambalaj planı yok.
+        ${editable ? `<button type="button" class="btn btn-link btn-sm text-danger p-0 ms-1" onclick="receteSatirSil('${satirKey}')">Kaldır</button>` : ''}
+      </td></tr>`);
+      return;
+    }
+
+    hasContent = true;
+    const { kalemler, toplam } = recetePlanMaliyet(plan, amb);
+    const tam = recetePlanTamMi(plan);
+    const fireVar = !tam && plan.fire > 0;
+    const iht = receteMiktarFmt(m.toplamIhtiyac, birim);
+    const silBtn = editable
+      ? `<button type="button" class="btn btn-link btn-sm text-danger p-0 mt-1 recete-duzen-sil" onclick="receteSatirSil('${satirKey}')" title="Kaldır"><i class="fa-solid fa-xmark"></i></button>`
+      : '';
+    const malzemeHucre = `<div class="recete-malzeme-ad">${gunlukMetinEsc(malzAd)}</div>
+      <div class="recete-malzeme-iht">${gunlukMetinEsc(iht)}</div>${silBtn}`;
+
+    kalemler.forEach((k, i) => {
+      const grupCls = blokIdx > 0 && i === 0 ? ' recete-malzeme-grup-bas' : '';
+      const malzemeTd = i === 0
+        ? `<td class="recete-malzeme-col" rowspan="${kalemler.length}">${malzemeHucre}</td>`
+        : '';
+      const stokUyari = Number(k.mevcutMiktar) < k.adet
+        ? ' <span class="badge bg-danger-subtle text-danger">stok!</span>' : '';
+      const adetHucre = editable
+        ? `<input type="number" class="form-control form-control-sm text-end recete-adet-inp" min="1" step="1" value="${Number(k.adet) || 1}"
+            onchange="receteSatirAdetDegisti('${satirKey}', ${Number(k.stokID)}, this.value)" onclick="event.stopPropagation()">`
+        : String(k.adet);
+      const fiyatHucre = editable
+        ? `<input type="number" class="form-control form-control-sm text-end recete-birim-fiyat-inp" step="0.01" min="0" value="${Number(k.birimFiyat).toFixed(2)}"
+            onchange="receteSatirBirimFiyatDegisti('${satirKey}', ${Number(k.stokID)}, this.value)" onclick="event.stopPropagation()">`
+        : receteParaFormat(k.birimFiyat);
+
+      tbody.push(`<tr class="recete-malzeme-satir${grupCls}" data-recete-satir="${satirKey}">
+        ${malzemeTd}
+        <td class="amb">${k.ambalajMiktari} ${gunlukMetinEsc(birim)}${stokUyari}</td>
+        <td class="num p-1">${adetHucre}</td>
+        <td class="num p-1">${fiyatHucre}</td>
+        <td class="num b">${receteParaFormat(k.tutar)}</td>
+      </tr>`);
+    });
+
+    tbody.push(`<tr class="recete-malzeme-alt">
+      <td colspan="3" class="recete-malzeme-alt-bos"></td>
+      <td class="recete-malzeme-alt-etiket">Malzeme toplamı:</td>
+      <td class="num recete-malzeme-alt-tutar"><strong>${receteParaFormat(toplam)}</strong></td>
+    </tr>`);
+
+    if (fireVar) {
+      tbody.push(`<tr class="recete-duzen-fire"><td colspan="5" class="small text-warning py-1 px-2">
+        <i class="fa-solid fa-circle-info me-1"></i>Not: ${plan.fire} ${birim} fazla ambalaj.
+      </td></tr>`);
+    }
+  });
+
+  if (!hasContent && !tbody.length) return '<p class="text-muted small mb-0">Ambalaj satırı yok.</p>';
+
+  return `<div class="recete-duzen-malzeme-wrap recete-gor-malzeme-wrap">
+    <table class="recete-gor-tablo recete-duzen-malzeme-tablo recete-gor-malzeme-tablo">
+      <colgroup>
+        <col class="col-malzeme"><col class="col-amb"><col class="col-adet"><col class="col-birim"><col class="col-tutar">
+      </colgroup>
+      <thead><tr>
+        <th class="malzeme">Malzeme</th>
+        <th class="amb">Ambalaj</th>
+        <th class="num">Adet</th>
+        <th class="num">Birim</th>
+        <th class="num">Tutar</th>
+      </tr></thead>
+      <tbody>${tbody.join('')}</tbody>
+    </table>
+  </div>`;
+}
+
 function receteMalzemePlanHtml(m, opts, birim, amb, satirKey, secimTip) {
   const planOpts = {
     editable: !!opts.editable,
@@ -368,8 +466,8 @@ function receteMalzemeKartHtml(m, opts = {}) {
   const dozajIhtiyacHtml = receteKalemDozajIhtiyacHtml(m, birim);
 
   if (opts.testModu) {
-    return `<div class="recete-fatura-kalem recete-urun-cerceve mb-3 overflow-hidden" data-recete-satir="${satirKey}">
-      <div class="recete-fatura-kalem-ust d-flex justify-content-between align-items-start gap-2 px-3 py-2 bg-light border-bottom">
+    return `<div class="recete-fatura-kalem recete-urun-cerceve mb-2 overflow-hidden" data-recete-satir="${satirKey}">
+      <div class="recete-fatura-kalem-ust d-flex justify-content-between align-items-center gap-2 px-2 py-1 bg-light border-bottom">
         <div class="min-w-0"><div class="fw-semibold">${gunlukMetinEsc(malzAd)}</div>${dozajIhtiyacHtml}</div>
         <span class="fw-bold text-success flex-shrink-0">${receteParaFormat(satirMaliyet.toplam)}</span>
       </div>
@@ -377,10 +475,10 @@ function receteMalzemeKartHtml(m, opts = {}) {
     </div>`;
   }
 
-  return `<div class="recete-fatura-kalem recete-urun-cerceve mb-3 overflow-hidden" data-recete-satir="${satirKey}">
-    <div class="recete-fatura-kalem-ust d-flex justify-content-between align-items-start gap-2 px-3 py-2 bg-light border-bottom">
+  return `<div class="recete-fatura-kalem recete-urun-cerceve mb-2 overflow-hidden" data-recete-satir="${satirKey}">
+    <div class="recete-fatura-kalem-ust d-flex justify-content-between align-items-center gap-2 px-2 py-1 bg-light border-bottom">
       <div class="min-w-0 flex-grow-1">
-        <div class="fw-semibold text-dark fs-6">${gunlukMetinEsc(malzAd)}</div>
+        <div class="fw-semibold text-dark recete-kart-baslik">${gunlukMetinEsc(malzAd)}</div>
         ${dozajIhtiyacHtml}
       </div>
       <div class="d-flex align-items-center gap-2 flex-shrink-0">
@@ -424,7 +522,11 @@ function musteriReceteSagPanelGoster(panel) {
   if (bos) bos.classList.toggle('d-none', panel !== 'bos');
   if (calisma) calisma.classList.toggle('d-none', panel !== 'calisma');
   if (detay) detay.classList.toggle('d-none', panel !== 'detay');
-  if (panel !== 'calisma') musteriReceteAramaTemizle();
+  if (panel !== 'calisma') {
+    musteriReceteAramaTemizle();
+  } else {
+    musteriReceteAramaOdakla();
+  }
 }
 
 function receteSolListeAktif(receteID) {
@@ -436,7 +538,22 @@ function receteSolListeAktif(receteID) {
 
 function musteriReceteOzetBarGuncelle() {
   const bar = document.getElementById('musteriReceteOzetBar');
-  if (bar && receteCtx?.urunAdi) bar.textContent = receteOzetMetin();
+  if (!bar) return;
+  const n = receteSatirlar.length;
+  bar.textContent = `${n} malzeme`;
+}
+
+function musteriReceteAramaOdakla() {
+  const panel = document.getElementById('musteriRecetePanelCalisma');
+  const input = document.getElementById('musteriReceteArama');
+  if (!panel || panel.classList.contains('d-none') || !input) return;
+  window.setTimeout(() => {
+    try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); }
+    input.classList.remove('recete-arama-vurgu');
+    void input.offsetWidth;
+    input.classList.add('recete-arama-vurgu');
+    window.setTimeout(() => input.classList.remove('recete-arama-vurgu'), 1000);
+  }, 100);
 }
 
 async function musteriReceteSolListeYukle(seciliID) {
@@ -454,12 +571,13 @@ async function musteriReceteSolListeYukle(seciliID) {
     liste.innerHTML = `<div class="list-group list-group-flush">${rows.map((r) => {
       const tarih = r.Tarih ? new Date(r.Tarih).toLocaleDateString('tr-TR') : '—';
       const aktif = Number(seciliID) === Number(r.ReceteID) ? ' active' : '';
-      const satildi = r.SatisYapildi ? '<span class="badge bg-primary mt-1">Satış ✓</span>' : '';
-      const detaySatir = receteNotListeDetayHtml(r.Notlar);
+      const satildi = r.SatisYapildi ? '<span class="badge bg-primary">Satış</span>' : '';
+      const metaSatir = receteListeMetaSatirHtml(r.Notlar, tarih, r.KalemSayisi);
       return `<button type="button" class="list-group-item list-group-item-action${aktif}" data-recete-liste-id="${r.ReceteID}" onclick="musteriReceteKayitliGoster(${r.ReceteID})">
-        <div class="d-flex justify-content-between align-items-start gap-1 flex-wrap">
-          <strong class="small">${gunlukMetinEsc(r.TarimUrunAdi)}</strong>
+        <div class="d-flex justify-content-between align-items-center gap-1">
+          <strong class="small text-truncate">${gunlukMetinEsc(r.TarimUrunAdi)}</strong>
           <div class="d-flex align-items-center gap-1 flex-shrink-0">
+            ${satildi}
             <span class="badge bg-success">${r.Dekar} da</span>
             <span class="recete-liste-aksiyon" onclick="event.stopPropagation()">
               <button type="button" class="btn btn-outline-secondary" title="Görüntüle"
@@ -467,9 +585,7 @@ async function musteriReceteSolListeYukle(seciliID) {
             </span>
           </div>
         </div>
-        ${detaySatir}
-        <small class="text-muted d-block mt-1">${tarih} · ${r.KalemSayisi || 0} kalem</small>
-        ${satildi}
+        ${metaSatir}
       </button>`;
     }).join('')}</div>`;
     if (seciliID != null) receteSolListeAktif(seciliID);
@@ -1550,8 +1666,7 @@ async function receteMalzemeEkleDevam(malzeme, manuelToplamLt, opts = {}) {
 
   musteriReceteAramaTemizle();
   receteSatirlarRender();
-  const arama = document.getElementById('musteriReceteArama');
-  setTimeout(() => arama?.focus(), 80);
+  musteriReceteAramaOdakla();
 }
 
 async function receteMalzemeEkle(malzeme, manuelToplamLt) {
@@ -1588,12 +1703,7 @@ function receteSatirlarRender() {
     wrap.innerHTML = '<p class="text-muted small mb-0">Malzeme ekleyin (arama veya barkod). Ambalaj ve dozaj: <strong>Tanımlamalar → Malzemeler</strong>.</p>';
     return;
   }
-  wrap.innerHTML = `<p class="small text-muted mb-2"><i class="fa-solid fa-receipt me-1"></i>Her malzeme kalın çerçeve içinde: <strong>dozaj</strong> ve <strong>toplam ihtiyaç</strong>. Altta <strong>adet</strong> ve <strong>birim fiyat</strong> el ile değiştirilebilir.</p>`
-    + receteSatirlar.map((s) => receteMalzemeKartHtml(s, {
-      editable: true,
-      satirKey: s.key,
-      tarimUrunAdi: receteCtx?.urunAdi,
-    })).join('')
+  wrap.innerHTML = receteDuzenMalzemeTabloHtml(receteSatirlar, { editable: true })
     + receteGenelToplamHtml();
 }
 
@@ -1874,6 +1984,64 @@ async function musteriReceteYeniModalAc() {
   modal.show();
 }
 
+/** Sol liste: tarla / konum / tarih tek satırda kompakt. */
+function receteListeMetaSatirHtml(notlar, tarih, kalemSayisi) {
+  const t = receteNotlarParcala(notlar);
+  const parcalar = [];
+  if (String(t.tarlaAdi || '').trim()) parcalar.push({ lbl: 'Tarla', val: t.tarlaAdi });
+  if (String(t.mevki || '').trim()) parcalar.push({ lbl: 'Mevkii', val: t.mevki });
+  if (String(t.ada || '').trim()) parcalar.push({ lbl: 'Ada', val: t.ada });
+  if (String(t.parsel || '').trim()) parcalar.push({ lbl: 'Parsel', val: t.parsel });
+  const tarihMeta = `${tarih} · ${kalemSayisi || 0} kalem`;
+
+  if (!parcalar.length) {
+    const serbest = String(t.ozelAciklama || '').trim();
+    if (!serbest) {
+      return `<div class="recete-liste-meta"><span class="recete-liste-meta-tarih">${gunlukMetinEsc(tarihMeta)}</span></div>`;
+    }
+    return `<div class="recete-liste-meta">
+      <span class="recete-liste-meta-hucre text-truncate" title="${gunlukMetinEsc(serbest)}">${gunlukMetinEsc(serbest)}</span>
+      <span class="recete-liste-meta-tarih">${gunlukMetinEsc(tarihMeta)}</span>
+    </div>`;
+  }
+
+  const konum = parcalar.map((p, i) => {
+    const tarlaCls = i === 0 && p.lbl === 'Tarla' ? ' recete-liste-meta-tarla' : '';
+    return `<span class="recete-liste-meta-hucre${tarlaCls}" title="${gunlukMetinEsc(`${p.lbl}: ${p.val}`)}">
+      <span class="recete-liste-meta-lbl">${gunlukMetinEsc(p.lbl)}:</span> ${gunlukMetinEsc(p.val)}
+    </span>`;
+  }).join('');
+
+  return `<div class="recete-liste-meta">
+    <div class="recete-liste-meta-konum recete-liste-meta-konum--${parcalar.length}">${konum}</div>
+    <span class="recete-liste-meta-tarih">${gunlukMetinEsc(tarihMeta)}</span>
+  </div>`;
+}
+
+/** Reçete raporu: tarla / konum alanları tek satırda eşit sütunlar. */
+function receteRaporKonumDetayHtml(notlar) {
+  const t = receteNotlarParcala(notlar);
+  const parcalar = [];
+  if (String(t.tarlaAdi || '').trim()) parcalar.push({ lbl: 'Tarla', val: t.tarlaAdi });
+  if (String(t.mevki || '').trim()) parcalar.push({ lbl: 'Mevkii', val: t.mevki });
+  if (String(t.ada || '').trim()) parcalar.push({ lbl: 'Ada', val: t.ada });
+  if (String(t.parsel || '').trim()) parcalar.push({ lbl: 'Parsel', val: t.parsel });
+  if (!parcalar.length) {
+    const serbest = String(t.ozelAciklama || '').trim();
+    if (!serbest) return '';
+    return `<div class="recete-gor-konum recete-gor-konum--1">
+      <div class="recete-gor-konum-hucre"><strong>${gunlukMetinEsc(serbest)}</strong></div>
+    </div>`;
+  }
+  const hucreler = parcalar.map((p) => `<div class="recete-gor-konum-hucre">
+    <span class="lbl">${gunlukMetinEsc(p.lbl)}</span><strong>${gunlukMetinEsc(p.val)}</strong>
+  </div>`).join('');
+  const ozel = String(t.ozelAciklama || '').trim()
+    ? `<div class="recete-gor-konum-ozel">${gunlukMetinEsc(t.ozelAciklama)}</div>`
+    : '';
+  return `<div class="recete-gor-konum recete-gor-konum--${parcalar.length}">${hucreler}</div>${ozel}`;
+}
+
 /** Kayıtlı reçete listesinde tarla / konum detayı (Notlar alanı). */
 function receteNotListeDetayHtml(notlar) {
   const metin = String(notlar || '').trim();
@@ -2003,7 +2171,7 @@ async function musteriReceteCalismaBaslat(musteriID, musteriAd, uid, dekar, urun
   musteriRecetePanelEtiketGuncelle();
   musteriReceteOzetBarGuncelle();
   receteSatirlarRender();
-  setTimeout(() => document.getElementById('musteriReceteArama')?.focus(), 250);
+  musteriReceteAramaOdakla();
 }
 
 async function musteriReceteDevam() {
@@ -2054,15 +2222,13 @@ async function ozetReceteKayitliListeYukle() {
       const aktif = Number(ozetReceteListeVurguID) === Number(r.ReceteID) ? ' active' : '';
       const musAd = gunlukMetinEsc(r.MusteriAd || 'Müşteri');
       const urun = gunlukMetinEsc(r.TarimUrunAdi || '—');
-      const detaySatir = receteNotListeDetayHtml(r.Notlar);
+      const metaSatir = receteListeMetaSatirHtml(r.Notlar, tarih, r.KalemSayisi);
       return `<div class="list-group-item list-group-item-action${aktif} py-2 px-2" data-ozet-recete-id="${r.ReceteID}" role="button"
           onclick="ozetReceteKayitliSec(${r.ReceteID})">
         <div class="d-flex justify-content-between align-items-start gap-2">
           <div class="min-w-0 flex-grow-1">
-            <div class="small fw-semibold text-truncate">${musAd}</div>
-            <div class="small text-secondary text-truncate">${urun}</div>
-            ${detaySatir}
-            <small class="text-muted">${tarih} · ${r.KalemSayisi || 0} kalem</small>
+            <div class="small fw-semibold text-truncate">${musAd} <span class="text-secondary fw-normal">· ${urun}</span></div>
+            ${metaSatir}
           </div>
           <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
             <span class="badge bg-success">${r.Dekar} da</span>
@@ -2434,6 +2600,31 @@ function receteRaporKaynakSatirlari() {
   }));
 }
 
+function receteRaporDozajMetni(s) {
+  const birim = s.birim || 'Lt';
+  const kayitli = Number(s.miktarDekar);
+  if (Number.isFinite(kayitli) && kayitli > 0) {
+    const fmt = kayitli >= 1
+      ? kayitli.toLocaleString('tr-TR', { maximumFractionDigits: 2 })
+      : kayitli.toLocaleString('tr-TR', { maximumFractionDigits: 4 });
+    return `${fmt} ${birim}/da`;
+  }
+  const dekar = Number(s.dekar);
+  let toplam = Number(s.toplamIhtiyac);
+  if (!Number.isFinite(toplam) && s.ihtiyac) {
+    const m = String(s.ihtiyac).match(/^([\d.,]+)/);
+    if (m) toplam = Number(String(m[1]).replace(',', '.'));
+  }
+  if (Number.isFinite(dekar) && dekar > 0 && Number.isFinite(toplam) && toplam > 0) {
+    const da = Math.round((toplam / dekar) * 10000) / 10000;
+    const fmt = da >= 1
+      ? da.toLocaleString('tr-TR', { maximumFractionDigits: 2 })
+      : da.toLocaleString('tr-TR', { maximumFractionDigits: 4 });
+    return `${fmt} ${birim}/da`;
+  }
+  return null;
+}
+
 function receteRaporBloklariOlustur() {
   const bloklar = [];
   for (const s of receteRaporKaynakSatirlari()) {
@@ -2444,7 +2635,7 @@ function receteRaporBloklariOlustur() {
       malzeme: s.grupAdi || '—',
       birim,
       ihtiyac: `${s.toplamIhtiyac} ${birim}`,
-      dozaj: s.miktarDekar != null ? `${s.miktarDekar} ${birim}/da` : null,
+      dozaj: receteRaporDozajMetni(s),
       dekar: s.dekar,
       kalemler: maliyet.kalemler.map((k) => ({
         ambalajMiktari: k.ambalajMiktari,
@@ -2501,7 +2692,8 @@ function receteBloklariFromKayitData(data) {
       malzeme: s.grupAdi || '—',
       birim,
       ihtiyac: `${s.toplamIhtiyac} ${birim}`,
-      dozaj: s.miktarDekar != null ? `${s.miktarDekar} ${birim}/da` : null,
+      dozaj: receteRaporDozajMetni(s),
+      dekar,
       kalemler: maliyet.kalemler.map((k) => ({
         ambalajMiktari: k.ambalajMiktari,
         adet: k.adet,
@@ -2525,33 +2717,71 @@ function receteKayitGenelToplamHesapla(data, bloklar) {
   return Math.round(genelToplam * 100) / 100;
 }
 
+function receteRaporDozajNotHtml(bloklar, dekar) {
+  const satirlar = (bloklar || [])
+    .map((b) => {
+      let doz = String(b.dozaj || '').trim();
+      if (!doz) {
+        const hesap = receteRaporDozajMetni({
+          birim: b.birim,
+          miktarDekar: null,
+          dekar: b.dekar ?? dekar,
+          toplamIhtiyac: b.ihtiyac,
+          ihtiyac: b.ihtiyac,
+        });
+        doz = hesap ? String(hesap).trim() : '';
+      }
+      if (!doz) return '';
+      return `<div class="recete-dozaj-satir"><span class="recete-dozaj-urun">${gunlukMetinEsc(b.malzeme)}</span> — ${gunlukMetinEsc(doz)}</div>`;
+    })
+    .filter(Boolean);
+  if (!satirlar.length) return '';
+  return `<div class="recete-gor-dozaj-not">
+    <div class="recete-dozaj-baslik">Listede bulunan ürünlerin dekara uygulanma oranları</div>
+    ${satirlar.join('')}
+  </div>`;
+}
+
 function receteRaporMalzemeKartlariHtml(bloklar) {
   if (!bloklar.length) return '<p class="recete-rapor-bos">Ambalaj satırı yok.</p>';
-  return bloklar.map((b) => {
-    const satirlar = b.kalemler.map((k) => `<tr>
-      <td class="amb">${k.ambalajMiktari} ${gunlukMetinEsc(b.birim)}</td>
-      <td class="num">${k.adet}</td>
-      <td class="num">${receteParaFormat(k.birimFiyat)}</td>
-      <td class="num b">${receteParaFormat(k.tutar)}</td>
-    </tr>`).join('');
-    const alt = b.dozaj ? ` · ${gunlukMetinEsc(b.dozaj)}` : '';
-    return `<div class="recete-gor-malzeme">
-      <div class="recete-gor-malzeme-ust">
-        ${gunlukMetinEsc(b.malzeme)}
-        <small>— ${gunlukMetinEsc(b.ihtiyac)}${alt}</small>
-      </div>
-      <table class="recete-gor-tablo">
-        <colgroup>
-          <col class="col-amb"><col class="col-adet"><col class="col-birim"><col class="col-tutar">
-        </colgroup>
-        <thead><tr>
-          <th class="amb">Ambalaj</th><th class="num">Adet</th><th class="num">Birim</th><th class="num">Tutar</th>
-        </tr></thead>
-        <tbody>${satirlar}</tbody>
-      </table>
-      <div class="recete-gor-malzeme-alt">Malzeme toplamı: <strong>${receteParaFormat(b.toplam)}</strong></div>
-    </div>`;
-  }).join('');
+  const satirlar = [];
+  bloklar.forEach((b, blokIdx) => {
+    const kalemler = b.kalemler || [];
+    if (!kalemler.length) return;
+    const malzemeHucre = `<div class="recete-malzeme-ad">${gunlukMetinEsc(b.malzeme)}</div>
+      <div class="recete-malzeme-iht">${gunlukMetinEsc(b.ihtiyac)}</div>`;
+    kalemler.forEach((k, i) => {
+      const grupCls = blokIdx > 0 && i === 0 ? ' recete-malzeme-grup-bas' : '';
+      const malzemeTd = i === 0
+        ? `<td class="recete-malzeme-col" rowspan="${kalemler.length}">${malzemeHucre}</td>`
+        : '';
+      satirlar.push(`<tr class="recete-malzeme-satir${grupCls}">
+        ${malzemeTd}
+        <td class="amb">${k.ambalajMiktari} ${gunlukMetinEsc(b.birim)}</td>
+        <td class="num">${k.adet}</td>
+        <td class="num">${receteParaFormat(k.birimFiyat)}</td>
+        <td class="num b">${receteParaFormat(k.tutar)}</td>
+      </tr>`);
+    });
+    satirlar.push(`<tr class="recete-malzeme-alt">
+      <td colspan="3" class="recete-malzeme-alt-bos"></td>
+      <td class="recete-malzeme-alt-etiket">Malzeme toplamı:</td>
+      <td class="num recete-malzeme-alt-tutar"><strong>${receteParaFormat(b.toplam)}</strong></td>
+    </tr>`);
+  });
+  if (!satirlar.length) return '<p class="recete-rapor-bos">Ambalaj satırı yok.</p>';
+  return `<div class="recete-gor-malzeme-wrap">
+    <table class="recete-gor-tablo recete-gor-malzeme-tablo">
+      <colgroup>
+        <col class="col-malzeme"><col class="col-amb"><col class="col-adet"><col class="col-birim"><col class="col-tutar">
+      </colgroup>
+      <thead><tr>
+        <th class="malzeme">Malzeme</th>
+        <th class="amb">Ambalaj</th><th class="num">Adet</th><th class="num">Birim</th><th class="num">Tutar</th>
+      </tr></thead>
+      <tbody>${satirlar.join('')}</tbody>
+    </table>
+  </div>`;
 }
 
 function receteRaporGovdeHtml(opts) {
@@ -2567,29 +2797,34 @@ function receteRaporGovdeHtml(opts) {
     notlar = '',
     satisYapildi = false,
   } = opts;
-  const notHtml = receteNotListeDetayHtml(notlar);
+  const notHtml = receteRaporKonumDetayHtml(notlar);
   const notBlok = notHtml ? `<div class="recete-gor-not">${notHtml}</div>` : '';
   const satisNot = satisYapildi
     ? '<div class="recete-rapor-satis">Satış yapıldı</div>'
     : '';
-  const receteNoSatir = receteNo
-    ? `<div><span class="lbl">Reçete no</span><strong>#${gunlukMetinEsc(String(receteNo))}</strong></div>`
+  const receteNoHucre = receteNo
+    ? `<div class="recete-gor-detay-no"><span class="lbl">Reçete no</span><strong>#${gunlukMetinEsc(String(receteNo))}</strong></div>`
     : '';
   return `${satisNot}
     <div class="recete-gor-ust">
-      <div class="recete-gor-meta">
-        <div><span class="lbl">Müşteri</span><strong>${gunlukMetinEsc(musteriAd)}</strong></div>
-        <div><span class="lbl">Tarım ürünü</span><strong>${gunlukMetinEsc(urunAdi)}</strong></div>
-        <div><span class="lbl">Dekar</span><strong>${gunlukMetinEsc(String(dekar))}</strong></div>
-        ${receteNoSatir}
+      <div class="recete-gor-meta recete-gor-ust-satir">
+        <div class="recete-gor-musteri"><span class="lbl">Müşteri</span><strong>${gunlukMetinEsc(musteriAd)}</strong></div>
+        <div class="recete-gor-detay-grup">
+          <div class="recete-gor-detay-urun"><span class="lbl">Tarım ürünü</span><strong>${gunlukMetinEsc(urunAdi)}</strong></div>
+          <div class="recete-gor-detay-dekar"><span class="lbl">Dekar</span><strong>${gunlukMetinEsc(String(dekar))}</strong></div>
+          ${receteNoHucre}
+        </div>
       </div>
       <div class="recete-gor-ozet">${gunlukMetinEsc(tarih)} · ${malzemeSayisi} malzeme</div>
     </div>
     ${notBlok}
     ${receteRaporMalzemeKartlariHtml(bloklar)}
-    <div class="recete-gor-genel">
-      <div class="lbl">Genel toplam</div>
-      <div class="tutar">${receteParaFormat(genelToplam)}</div>
+    <div class="recete-gor-alt">
+      <div class="recete-gor-alt-sol">${receteRaporDozajNotHtml(bloklar, dekar)}</div>
+      <div class="recete-gor-genel">
+        <div class="lbl">Genel toplam</div>
+        <div class="tutar">${receteParaFormat(genelToplam)}</div>
+      </div>
     </div>`;
 }
 
@@ -2604,21 +2839,47 @@ function receteRaporYazdirCss() {
     .recete-rapor-baslik .firm { font-size: 9.5pt; color: #6c757d; }
     .recete-rapor-satis { font-size: 9.5pt; color: #0d6efd; margin-bottom: 8px; }
     .recete-gor-ust { border-bottom: 1px solid #dee2e6; padding-bottom: 10px; margin-bottom: 12px; }
-    .recete-gor-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 10pt; }
+    .recete-gor-meta { font-size: 10pt; }
     .recete-gor-meta .lbl { display: block; font-size: 8.5pt; color: #6c757d; margin-bottom: 2px; }
     .recete-gor-meta strong { font-weight: 600; }
+    .recete-gor-ust-satir { display: flex; align-items: flex-end; gap: 24px 32px; }
+    .recete-gor-musteri { flex: 2 1 0; min-width: 0; padding-right: 8px; }
+    .recete-gor-musteri strong { word-break: break-word; }
+    .recete-gor-detay-grup {
+      flex: 3 1 0;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 20px;
+      align-items: end;
+    }
+    .recete-gor-detay-no { text-align: right; }
     .recete-gor-ozet { font-size: 9pt; color: #6c757d; margin-top: 8px; }
     .recete-gor-not { background: #f8f9fa; border-radius: 6px; padding: 8px 10px; font-size: 9.5pt; margin-bottom: 12px; }
-    .recete-gor-malzeme { border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 10px; overflow: hidden; page-break-inside: avoid; }
-    .recete-gor-malzeme-ust { background: #f1f8f2; padding: 8px 10px; font-weight: 600; font-size: 10pt; }
-    .recete-gor-malzeme-ust small { font-weight: 400; color: #6c757d; }
+    .recete-gor-konum { display: grid; gap: 8px 16px; align-items: start; }
+    .recete-gor-konum--1 { grid-template-columns: 1fr; }
+    .recete-gor-konum--2 { grid-template-columns: repeat(2, 1fr); }
+    .recete-gor-konum--3 { grid-template-columns: repeat(3, 1fr); }
+    .recete-gor-konum--4 { grid-template-columns: repeat(4, 1fr); }
+    .recete-gor-konum-hucre { min-width: 0; }
+    .recete-gor-konum-hucre .lbl { display: block; font-size: 8.5pt; color: #6c757d; margin-bottom: 2px; }
+    .recete-gor-konum-hucre strong { font-weight: 600; word-break: break-word; }
+    .recete-gor-konum-ozel { margin-top: 6px; font-size: 9pt; color: #495057; word-break: break-word; }
+    .recete-gor-malzeme-wrap { border: 1px solid #e9ecef; border-radius: 6px; overflow: hidden; margin-bottom: 10px; }
+    .recete-gor-malzeme-tablo { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 9.5pt; }
+    .recete-gor-malzeme-tablo col.col-malzeme { width: 28%; }
+    .recete-gor-malzeme-tablo col.col-amb { width: 22%; }
+    .recete-gor-malzeme-tablo col.col-adet { width: 10%; }
+    .recete-gor-malzeme-tablo col.col-birim { width: 20%; }
+    .recete-gor-malzeme-tablo col.col-tutar { width: 20%; }
     .recete-gor-tablo { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 9.5pt; }
-    .recete-gor-tablo col.col-amb { width: 38%; }
-    .recete-gor-tablo col.col-adet { width: 12%; }
-    .recete-gor-tablo col.col-birim { width: 25%; }
-    .recete-gor-tablo col.col-tutar { width: 25%; }
-    .recete-gor-tablo th, .recete-gor-tablo td { padding: 6px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
-    .recete-gor-tablo th { background: #fff; color: #6c757d; font-weight: 500; }
+    .recete-gor-tablo th, .recete-gor-tablo td { padding: 5px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    .recete-gor-malzeme-tablo th { background: #f8fafc; color: #6c757d; font-weight: 600; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.03em; }
+    .recete-gor-malzeme-tablo .recete-malzeme-col { vertical-align: top; background: #f8fdf9; border-right: 1px solid #eef2f6; }
+    .recete-malzeme-ad { font-weight: 700; font-size: 9.5pt; color: #1b5e20; line-height: 1.3; }
+    .recete-malzeme-iht { font-size: 8.5pt; color: #6c757d; margin-top: 2px; }
+    .recete-malzeme-doz { font-size: 8pt; color: #94a3b8; margin-top: 2px; }
+    .recete-malzeme-grup-bas td { border-top: 2px solid #e2e8f0; }
     .recete-gor-tablo th.amb, .recete-gor-tablo td.amb { text-align: left; }
     .recete-gor-tablo th.num, .recete-gor-tablo td.num {
       text-align: right;
@@ -2626,8 +2887,17 @@ function receteRaporYazdirCss() {
       white-space: nowrap;
     }
     .recete-gor-tablo td.num.b { font-weight: 600; }
-    .recete-gor-malzeme-alt { text-align: right; padding: 6px 10px; background: #fafafa; font-size: 9.5pt; }
-    .recete-gor-genel { border-top: 2px solid #2e7d32; padding-top: 10px; margin-top: 4px; text-align: right; }
+    .recete-malzeme-alt td { background: #fafafa; font-size: 9pt; padding: 4px 10px; }
+    .recete-malzeme-alt-bos { border-bottom: 1px solid #f0f0f0; }
+    .recete-malzeme-alt-etiket { text-align: right; color: #6c757d; white-space: nowrap; }
+    .recete-malzeme-alt-tutar { font-weight: 600; text-align: right !important; white-space: nowrap; }
+    .recete-gor-alt { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end; justify-content: space-between; border-top: 2px solid #2e7d32; padding-top: 10px; margin-top: 4px; }
+    .recete-gor-alt-sol { flex: 1 1 240px; min-width: 0; }
+    .recete-gor-dozaj-not { font-size: 8.5pt; color: #495057; line-height: 1.45; }
+    .recete-dozaj-baslik { font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #6c757d; margin-bottom: 6px; }
+    .recete-dozaj-satir { margin-bottom: 3px; }
+    .recete-dozaj-urun { font-weight: 600; color: #1b5e20; }
+    .recete-gor-genel { flex: 0 0 auto; text-align: right; min-width: 140px; }
     .recete-gor-genel .lbl { font-size: 9pt; color: #6c757d; }
     .recete-gor-genel .tutar { font-size: 14pt; font-weight: 700; color: #1b5e20; margin-top: 2px; }
     .recete-rapor-bos { color: #6c757d; font-size: 10pt; }
@@ -2760,6 +3030,26 @@ function receteRaporA4DokumaniOlustur(meta, bloklar, genelToplam) {
 </html>`;
 }
 
+function receteRaporDirektYazdir(html) {
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('title', 'Reçete yazdır');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+  const win = iframe.contentWindow;
+  const doc = win.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+  win.focus();
+  win.print();
+  setTimeout(() => iframe.remove(), 1500);
+}
+
 async function musteriReceteYazdir() {
   if (!receteCtx) return alert('Reçete yok.');
   if (!receteKayitliGoruntuleme && !receteSatirlar.length) return alert('Yazdırmak için malzeme ekleyin.');
@@ -2781,15 +3071,7 @@ async function musteriReceteYazdir() {
     notlar: kayit?.Notlar || '',
     satisYapildi: !!kayit?.SatisYapildi,
   }, bloklar, genelToplam);
-  if (typeof belgeOnizlemeAcHtml === 'function') {
-    belgeOnizlemeAcHtml(html, '<i class="fa-solid fa-file-lines me-2"></i>Reçete raporu');
-  } else {
-    const w = window.open('', '_blank');
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    w.print();
-  }
+  receteRaporDirektYazdir(html);
 }
 
 async function musteriReceteKayitliGoster(receteID) {
@@ -2916,6 +3198,9 @@ async function receteTestUrunSelectDoldur() {
   await tarimUrunSelectDoldur('receteTestUrunID');
 }
 
+document.getElementById('musteriReceteModal')?.addEventListener('shown.bs.modal', () => {
+  musteriReceteAramaOdakla();
+});
 document.getElementById('musteriReceteModal')?.addEventListener('hidden.bs.modal', () => {
   musteriReceteAramaTemizle();
   if (!ozetReceteHizliDonus) return;
