@@ -2662,9 +2662,6 @@ async function musteriDetaySatisKaydet(event) {
     const seciliRecete = typeof receteAktifKayitliID !== 'undefined' ? receteAktifKayitliID : null;
     if (typeof musteriReceteSolListeYukle === 'function') {
       await musteriReceteSolListeYukle(seciliRecete);
-      if (seciliRecete && typeof musteriReceteKayitliGoster === 'function') {
-        await musteriReceteKayitliGoster(seciliRecete);
-      }
     }
     await musteriDetayUrunleriDoldur();
     await musteriDetayYukle();
@@ -2927,9 +2924,6 @@ async function musteriHareketSil(hareketID) {
   const seciliRecete = typeof receteAktifKayitliID !== 'undefined' ? receteAktifKayitliID : null;
   if (typeof musteriReceteSolListeYukle === 'function') {
     await musteriReceteSolListeYukle(seciliRecete);
-    if (seciliRecete && typeof musteriReceteKayitliGoster === 'function') {
-      await musteriReceteKayitliGoster(seciliRecete);
-    }
   }
   musterileriGetir();
   stoklariGetir();
